@@ -1,0 +1,47 @@
+/* ck_editor styles */
+div.cadre {
+  margin: 4px !important;
+  padding: 10px !important;
+  border: 1px solid black;
+  background-color: #D3D3D3 !important;
+  display: block !important;
+}
+
+div.bordure {
+  margin-top: 10px !important;
+  margin-bottom: 10px !important;
+  margin-left:30px !important;
+  padding: 10px !important;
+  border-left: 10px solid #D3D3D3 !important;
+  display:block !important;
+}
+
+a:link.active-trail , a:visited.active-trail {
+  color: #B0281A;
+}
+
+span.pdf16 {
+  padding: 0px 0px 2px 20px !important;
+  background: url(../img/ckeditor_styles/pdf.png) 0px 50% no-repeat !important;
+}
+
+span.word16 {
+  padding: 0px 0px 2px 20px !important;
+  background: url(../img/ckeditor_styles/word.png) 0px 50% no-repeat !important;
+}
+
+span.excel16 {
+  padding: 0px 0px 2px 20px !important;
+  background: url(../img/ckeditor_styles/excel.png) 0px 50% no-repeat !important;
+}
+
+span.powerpoint16 {
+  padding: 0px 0px 2px 20px !important;
+  background: url(../img/ckeditor_styles/powerpoint.png) 0px 50% no-repeat !important;
+}
+
+span.image16 {
+  padding: 0px 0px 2px 20px !important;
+  background: url(../img/ckeditor_styles/illustration.png) 0px 50% no-repeat !important;
+}
+/* end ck_editor styles */

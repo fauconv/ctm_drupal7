@@ -1,0 +1,24 @@
+### Eclipse Workspace Patch 1.0
+#P masterdev
+Index: www/sites/all/modules/contrib/autoupload/js/autoupload.js
+===================================================================
+--- www/sites/all/modules/contrib/autoupload/js/autoupload.js	(revision 1526)
++++ www/sites/all/modules/contrib/autoupload/js/autoupload.js	(working copy)
+@@ -5,7 +5,7 @@
+ (function ($) {
+   Drupal.behaviors.autoUpload = {
+     attach: function(context, settings) {
+       $('.form-item input.form-submit[value=Upload]', context).hide();
++      $('.form-item input.form-submit[value=Transférer]', context).hide();
+       $('.form-item input.form-file', context).change(function() {
+         $parent = $(this).closest('.form-item');
+ 
+@@ -13,7 +13,7 @@
+         //would prefer an event, but there isn't one
+         setTimeout(function() {
+           if(!$('.error', $parent).length) {
+             $('input.form-submit[value=Upload]', $parent).mousedown();
++            $('input.form-submit[value=Transférer]', $parent).mousedown();
+           }
+         }, 100);
+       });

@@ -1,0 +1,989 @@
+<?php
+
+/**
+ * @file
+ * Lists des hooks utilises par ctm_installation
+ * Liste des fonctions de l'API de ctm_installation
+ * Liste des constantes definis par ctm_installation
+ */
+global $ctm_installation_dir;
+$ctm_installation_dir = dirname(__FILE__);
+require $ctm_installation_dir . '/ctm_installation.queue.inc'; // librairie pour le systeme de queue
+require $ctm_installation_dir . '/ctm_installation.api.inc'; // librairie de fonctions utilisable par les features
+//-------------------------------------------------- CONSTANTS ----------------------------------------------- //
+//
+// attention si vous changez les constantes ci-dessous il faut adapter les features en consequence
+//theme et profil
+define('CTM_INTERNET', 'ctm_internet'); // nom du profil internet
+define('CTM_INTRANET', 'ctm_intranet'); // nom du profil intranet
+define('CTM_THEME', 'ctm'); // theme
+define('CTM_THEME_BACK', 'ctm_back'); // theme back
+//roles
+define('ADMINISTRATEUR', 'developer'); // nom du role administrateur
+define('ADMIN_SITE', 'administrator'); // nom du role admin metier
+define('CONTRIBUTEUR', 'contributor'); // nom du role contributeur
+define('LECTEUR', 'READER'); // nom du role lecteur pour les intranet
+define('ANONYMOUS', 'anonymous user'); // constante qui manque dans drupal
+define('AUTHENTICATED', 'authenticated user'); // constante qui manque dans drupal
+// permission generique
+define('CTM_PUBLISH_PERM', 0x1); // 0b1
+define('CTM_CREATE_PERM', 0x2); // 0b10
+define('CTM_COMMENT_PERM', 0x4); // 0b100
+define('CTM_EDIT_PERM', 0x8); // 0b1000
+define('CTM_DELETE_PERM', 0x10); // 0b10000
+define('CTM_ALL_PERM', 0x1F); // 0b11111
+//autre
+define('CTM_PKG_CLIENT', 'client'); // nom du package des features gerable par le client
+//--------------------------------------- FONCTIONS HELPER ----------------------------------------------- //
+
+/**
+ * return the list of development module to deactivate each night
+ */
+function ctm_installation_get_devel_modules() {
+  $list = array(
+      'admin_devel',
+      'backup_migrate',
+      'bulk_export',
+      'bundle_copy',
+      'checklistapi_example',
+      'ctools_ajax_sample',
+      'ctools_plugin_example',
+      'coder',
+      'coder_review',
+      'coder_upgrade',
+      'context_ui',
+      'ctm_styleguide',
+      'date_migrate_example',
+      'dblog',
+      'debug',
+      'delete_all',
+      'demo',
+      'devel',
+      'devel_node_access',
+      'devel_generate',
+      'devel_themer',
+      'entityreference_behavior_example',
+      'entity_translation_export_import',
+      'ctm_masquerade',
+      'feeds_ui',
+      'feeds_tamper_ui',
+      'field_ui',
+      'fontyourface_ui',
+      'gplib',
+      'journal',
+      'l10n_client',
+      'l10n_update',
+      'macro',
+      'masquerade',
+      'og_example',
+      'path_breadcrumbs_ui',
+      'potx',
+      'qa_checklist',
+      'queue_ui',
+      'rules_admin',
+      'security_review',
+      'seo_checklist',
+      'simplehtmldom',
+      'simpletest',
+      'styleguide',
+      'stringoverrides',
+      'upgrade_status',
+      'user_display_ui',
+      'util',
+      'views_ui',
+      'views_theme_wizard',
+  );
+  drupal_alter('installation_modules', $list);
+  return $list;
+}
+
+/**
+ * return the list of default activable development modules with the switch "activate developer modules"
+ */
+function ctm_installation_get_default_devel_modules() {
+  $list = array(
+      'devel' => 'devel',
+      'field_ui' => 'field_ui',
+      'views_ui' => 'views_ui',
+      'rules_admin' => 'rules_admin',
+      'queue_ui' => 'queue_ui',
+      'dblog' => 'dblog',
+      'ctm_styleguide' => 'ctm_styleguide',
+  );
+  drupal_alter('installation_default_modules', $list);
+  return $list;
+}
+
+/**
+ * simule une reinstall complete de ctm_installation comme le ferai un revert de feature
+ */
+function ctm_installation_revert() {
+  watchdog('Installation and configuration', 'revert de ctm installation', array(), WATCHDOG_DEBUG);
+  $profile = drupal_get_profile();
+  ctm_installation_config_all($profile);
+  ctm_installation_config_all_after($profile);
+}
+
+/**
+ * install un profil internet ou intranet avant la partie "form" du profil d'install
+ * @param $profile : CTM_INTERNET ou CTM_INTRANET
+ * @param $op : 'install' or 'update'
+ */
+function ctm_installation_config_all($profile, $op = 'update') {
+  variable_set('ctm_profile', $profile);
+  ctm_installation_call_config('before', $profile, $op);
+  ctm_installation_call_config('normal', $profile, $op);
+}
+
+/**
+ * lance les configurations qui doivent etre faite apres le formulaire de configuration du site
+ * et qui donc ne peuvent pas etre faite dans le ctm_installation_config_all
+ */
+function ctm_installation_config_all_after($profile, $op = 'update') {
+  ctm_installation_call_config('after', $profile, $op);
+  ctm_installation_queue_end_config($profile, $op);
+}
+
+/**
+ * appel toutes les fonctions de config du type specifie
+ * Dans le cas du type queue la fonction n'execute qu'une seule fonction de
+ * config par appel. Il faut utilise le parametre $current pour specifier
+ * le numero de la fonction a appeler
+ * @param string $type
+ *   'before' || 'normal' || 'after' || 'queue'
+ * @param string $profile
+ *  CTM_INTERNET || CTM_INTRANET
+ * @param string $op
+ *  'install' || 'update'
+ * @param int $current
+ * @return la liste des fonction du type
+ */
+function ctm_installation_call_config($type, $profile, $op = 'update', $current = 0) {
+  static $list = array();
+  $roles = ctm_installation_user_roles();
+  if(!isset($list[$type])) {
+    ctm_installation_load_config_files(array($type), $profile);
+    $var = get_defined_functions();
+    $list[$type] = array();
+    foreach ($var['user'] as $func) {
+      if (substr($func, 0, 24) == 'ctm_installation_config_' &&
+          substr($func, 0, 27) != 'ctm_installation_config_all') {
+        $end = substr($func, -5);
+        if($end == substr($type,-5) || $type == 'normal' && $end != 'after' &&
+            $end != 'efore' && $end != 'queue') {
+          $list[$type][] = $func;
+        }
+      }
+    }
+    if ($type == 'normal') {
+      drupal_alter('installation_config_all', $list[$type]);
+    }
+    else {
+      drupal_alter('installation_config_all_' . $type, $list[$type]);
+    }
+  }
+  if($type != 'queue') {
+    foreach ($list[$type] as $func) {
+      if (function_exists('drush_log')) {
+        echo 'Configuration of ' . str_replace('ctm_installation_config_', '', $func) . "\n";
+      }
+      else {
+        drupal_set_message('Call ' . $func);
+      }
+      $func($profile, $roles, $op);
+    }
+  } elseif(!empty($list[$type][$current])) {
+    $func = $list[$type][$current];
+    $func($profile, $roles, $op);
+  }
+  return $list[$type];
+}
+
+/**
+ * load configurations files in order specified by the conditions in the
+ * hook_installation_config
+ * @param type $types
+ * @param type $profile
+ * @throws Exception
+ */
+function ctm_installation_load_config_files($types, $profile) {
+  static $sorted_list = array();
+  if(empty($sorted_list)) {
+    $list_module = ctm_installation_module_invoke_all('installation_config');
+    while (!empty($list_module)) {
+      $conditions = reset($list_module); // take at start
+      $module = key($list_module);
+      unset($list_module[$module]);
+      foreach ($conditions as $key => $condition) {
+        if (isset($sorted_list[$condition])) {
+          unset($conditions[$key]);
+        }
+        else {
+          break;
+        }
+      }
+      if (empty($conditions)) {
+        $sorted_list[$module] = $module;
+      }
+      elseif (empty($list_module)) {
+        throw new Exception('Impossible to load config files with this conditions for module ' . $module);
+      }
+      else {
+        $list_module[$module] = $conditions; // add a the end of the array
+      }
+    }
+  }
+  $profile = '.' . $profile;
+  foreach ($types as $type) {
+    $type = ($type == 'normal') ? '' : '.' . $type;
+    foreach ($sorted_list as $module) {
+      module_load_include('inc', $module, $module . '.config' . $type);
+      module_load_include('inc', $module, $module . '.config' . $type . $profile);
+    }
+  }
+}
+
+//-------------------------------------------------- HOOK ----------------------------------------------- //
+
+/**
+ * implements hook_installation_config.
+ * permet de declarer ce module comme un module de config
+ */
+function ctm_installation_installation_config() {
+  return array();
+}
+
+/**
+ * creation de la page d'admin
+ * Implements hook_menu().
+ */
+function ctm_installation_menu() {
+  $items = array();
+  $items['admin/config/ctm'] = array(
+      'title' => 'Custom',
+      'description' => 'Custom Configuration for this site',
+      'page callback' => 'system_admin_menu_block_page',
+      'access arguments' => array('administer ctm configuration'),
+      'file' => drupal_get_path('module', 'system') . '/system.admin.inc',
+      'file path' => '/',
+  );
+  $items['admin/config/development/ctm'] = array(
+      'title' => 'Custom',
+      'description' => 'Custom Configuration for this site',
+      'page callback' => 'system_admin_menu_block_page',
+      'access arguments' => array('administer content types'),
+      'file' => drupal_get_path('module', 'system') . '/system.admin.inc',
+      'file path' => '/',
+  );
+  $items['admin/config/development/ctm/installation'] = array(
+      'title' => 'Installation',
+      'description' => 'Toreplay the installation step by step',
+      'access callback' => 'user_access',
+      'access arguments' => array('administer site configuration'),
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('ctm_installation_installation_form'),
+      'file' => 'ctm_installation.admin.inc',
+  );
+  if (variable_get('ctm_installation_devel_modules_enabled', 1) == 1) {
+    $title = 'Deactivate all developer modules';
+  }
+  else {
+    $title = 'Activate default developer modules';
+  }
+  $items['admin/config/development/ctm/toggle_modules'] = array(
+      'title' => $title,
+      'access callback' => 'user_access',
+      'access arguments' => array('administer modules'),
+      'page callback' => 'ctm_installation_toggle_modules',
+      'file' => 'ctm_installation.admin.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_form_alter().
+ * modification de node form
+ * @param array $form Formulaire passe par reference
+ * @param array $form_state Etat du formulaire
+ * @param string $form_id Nom du formulaire
+ */
+function ctm_installation_form_node_form_alter(&$form, &$form_state, $form_id) {
+  // Ajout de la description sur le champs Title "Champ limite a 255 caracteres"
+  $form['title']['#description'] = "max : 255 characters";
+  // Permet de remettre les droits d'affecter un menu a un noeud
+  if (isset($form['menu']['link']['parent']) && !$form['menu']['#access'] && user_access('define menu item for node')) {
+    $form['menu']['#access'] = TRUE;
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ * remplace features_form_submit par defaut
+ * pour active desactiver les feature en batch et non pas toute d'un coup
+ * @param array $form
+ * @param type $form_state
+ * @param type $form_id
+ */
+function ctm_installation_form_features_admin_form_alter(&$form, &$form_state, $form_id) {
+  $form['buttons']['submit']['#submit'][0] = 'ctm_installation_features_form_submit';
+}
+
+/**
+ * remplace features_form_submit par defaut
+ * pour active desactiver les feature en batch et non pas toute d'un coup
+ * @param type $form
+ * @param array $form_state
+ */
+function ctm_installation_features_form_submit(&$form, &$form_state) {
+  $features = $form['#features'];
+  $install = array();
+  $disable = array();
+  if (!empty($features)) {
+    $status = $form_state['values']['status'];
+    foreach ($status as $feature => $value) {
+      $default = (!isset($form_state['complete form']['#features'][$feature]->status)) ? 0 : $form_state['complete form']['#features'][$feature]->status;
+      if (($value xor $default) == 1) {
+        if ($value) {
+          $install[] = $feature;
+        }
+        else {
+          $disable[] = $feature;
+        }
+      }
+    }
+    if (!empty($disable)) {
+      ctm_installation_queue_module_disable($disable, TRUE);
+    }
+    if (!empty($install)) {
+      ctm_installation_queue_module_enable($install);
+    }
+    drupal_goto(request_uri());
+  }
+}
+
+/**
+ * Implements hook_permission().
+ * @return type
+ */
+function ctm_installation_permission() {
+  $perms = array(
+      'define menu item for node' => array(
+          'title' => t('define menu item for node'),
+          'description' => t('Allow to define a menu for a node even if user dont have right to administer menus'),
+      ),
+      'administer ctm configuration' => array(
+          'title' => t('Administer ctm configuration'),
+      ),
+  );
+  foreach (node_permissions_get_configured_types() as $type) {
+    $info = node_type_get_type($type);
+    $type = check_plain($info->type);
+    $perms['full edit any ' . $type . ' content'] = array(
+        'title' => t('full edit for any %type_name content', array('%type_name' => $info->name)),
+    );
+  }
+  return $perms;
+}
+
+/**
+ * configure le cron pour ultimate cron pour ctm installation
+ * Implements hook_cron_alter().
+ */
+function ctm_installation_cron_alter(&$hooks) {
+  if (isset($hooks['ctm_installation_cron'])) {
+    $hooks['ctm_installation_cron']['title'] = t('Disable developer modules');
+    $hooks['ctm_installation_cron']['scheduler']['crontab'] = array('rules' => array("0 0 * * *"));
+  }
+  if (isset($hooks['boost_cron'])) {
+    $hooks['boost_cron']['title'] = t('Remove expired files from the cache');
+    $hooks['boost_cron']['scheduler']['crontab'] = array('rules' => array("0 */12 * * *"));
+  }
+  if (isset($hooks['ctools_cron'])) {
+    $hooks['ctools_cron']['scheduler']['crontab'] = array('rules' => array("0 */12 * * *"));
+  }
+  if (isset($hooks['db_maintenance_cron'])) {
+    $hooks['db_maintenance_cron']['title'] = t('Optimizing the database');
+    $hooks['db_maintenance_cron']['scheduler']['crontab'] = array('rules' => array("50 0 * * *"));
+  }
+  if (isset($hooks['scheduler_cron'])) {
+    $hooks['scheduler_cron']['title'] = t('Publish and depublish nodes');
+  }
+  if (isset($hooks['views_bulk_operations_cron'])) {
+    $hooks['views_bulk_operations_cron']['title'] = t('Deletes queue items belonging to VBO active queues that are old than one day');
+    $hooks['views_bulk_operations_cron']['scheduler']['crontab'] = array('rules' => array("20 0 * * *"));
+  }
+  if (isset($hooks['queue_views_bulk_operations'])) {
+    $hooks['queue_views_bulk_operations']['title'] = t('Processes the provided queue item');
+    $hooks['queue_views_bulk_operations']['scheduler']['crontab'] = array('rules' => array("* * * * *"));
+  }
+  if (isset($hooks['system_cron'])) {
+    $hooks['system_cron']['scheduler']['crontab'] = array('rules' => array("* * * * *"));
+  }
+  if (isset($hooks['node_cron'])) {
+    $hooks['node_cron']['scheduler']['crontab'] = array('rules' => array("* * * * *"));
+  }
+  if (isset($hooks['rules_cron'])) {
+    $hooks['rules_cron']['scheduler']['crontab'] = array('rules' => array("* * * * *"));
+  }
+  if (isset($hooks['scheduler_cron'])) {
+    $hooks['scheduler_cron']['scheduler']['crontab'] = array('rules' => array("* * * * *"));
+  }
+  if (isset($hooks['ultimate_cron_plugin_launcher_serial_cleanup'])) {
+    $hooks['ultimate_cron_plugin_launcher_serial_cleanup']['scheduler']['crontab'] = array('rules' => array("* * * * *"));
+  }
+  if (isset($hooks['ultimate_cron_plugin_logger_database_cleanup'])) {
+    $hooks['ultimate_cron_plugin_logger_database_cleanup']['scheduler']['crontab'] = array('rules' => array("* * * * *"));
+  }
+  if (isset($hooks['xmlsitemap_cron'])) {
+    $hooks['xmlsitemap_cron']['title'] = t('Regenerate the sitemap XML files if needed');
+    $hooks['xmlsitemap_cron']['scheduler']['crontab'] = array('rules' => array("40 0 * * *"));
+  }
+  if (isset($hooks['xmlsitemap_menu_cron'])) {
+    $hooks['xmlsitemap_menu_cron']['title'] = t('Update link and regeneration flag');
+    $hooks['xmlsitemap_menu_cron']['scheduler']['crontab'] = array('rules' => array("30 0 * * *"));
+  }
+  if (isset($hooks['field_cron'])) {
+    $hooks['field_cron']['scheduler']['crontab'] = array('rules' => array("0 1 * * *"));
+  }
+}
+
+/**
+ * change le bouton devel de admin menu si on desactive tous les modules de dev
+ */
+function ctm_installation_modules_disabled($modules) {
+
+  // etat du toggle admin menu : si il n y a pas de module de dev deja active on a rien a faire
+  $saved_state = variable_get('ctm_installation_devel_modules_enabled', NULL);
+  if (empty($saved_state)) {
+    $module_actif = module_list();
+    $devel_modules = ctm_installation_get_devel_modules();
+    // Store currently enabled modules in a variable.
+    $devel_modules = array_intersect($module_actif, $devel_modules);
+    // list modules always enable
+    $devel_modules = array_filter($devel_modules, function($module) use($modules) {
+      return !in_array($module, $modules);
+    });
+    if (empty($devel_modules)) { // on vient de les desactiver
+      variable_set('ctm_installation_devel_modules_enabled', ctm_installation_get_default_devel_modules());
+    }
+  }
+}
+
+/**
+ * positionne l'etat du bouton devel de admin menu
+ * positonne les roles pour le module draggableviews
+ */
+function ctm_installation_modules_enabled($modules) {
+
+  // si il n y a pas de module de dev deja active on regarde si on vient d en active un
+  $saved_state = variable_get('ctm_installation_devel_modules_enabled', NULL);
+  if (isset($saved_state)) {
+    $devel_modules = ctm_installation_get_devel_modules();
+    $devel_modules = array_intersect($modules, $devel_modules);
+    if (!empty($devel_modules)) { // on vient d'en activer un
+      variable_del('ctm_installation_devel_modules_enabled');
+    }
+  }
+
+  // on donne les permissions pour le module transverse "draggableviews"
+  if (in_array('draggableviews', $modules)) {
+    $draggableviews_roles = array(ADMIN_SITE, ADMINISTRATEUR, MODERATEUR); // liste des roles qui ont le droit
+    $permissions = array('access draggableviews' => TRUE);
+    foreach ($draggableviews_roles as $role_name) {
+      $role = user_role_load_by_name($role_name);
+      user_role_change_permissions($role->rid, $permissions);
+    }
+  }
+
+}
+
+/**
+ * Implements hook_init
+ * activation de la queue
+ */
+function ctm_installation_init() {
+  ctm_installation_process_queue();
+}
+
+/**
+ * supprime les content type et les vocabulaire correspondants lorsque l on desactive une features
+ * cree la rules correspondant au content type
+ * Implements hook_features_post_restore().
+ * @param string $op
+ *   The operation that is triggered: revert, rebuild, disable, enable
+ * @param array $items
+ *   The items handled by the operation. (list of features)
+ */
+function ctm_installation_features_post_restore($op, $items) {
+  if (empty($items)) {
+    return;
+  }
+
+  switch ($op) {
+
+    // enable
+    case 'enable':
+      $client = FALSE;
+      foreach ($items as $feature_name => $componants) {
+        // uniquement pour les feature controle par le client
+        $info = features_get_features($feature_name)->info;
+        if($info['package'] != CTM_PKG_CLIENT) {
+          continue;
+        }
+        $client = TRUE;
+      }
+      if($client) {
+        ctm_installation_delete_alias_all();
+        ctm_installation_generate_static_alias();
+        ctm_installation_queue_generate_alias(array('node','term'));
+        if(drupal_get_profile() == CTM_INTERNET) {
+          ctm_installation_queue_xmlsitemap_rebuild();
+        }
+      }
+      break;
+
+    // disable
+    case 'disable': // ne peut pas etre executer en queue car on a besoin de donnees qui son en cache mais plus actives
+      if(drupal_get_profile() == CTM_INTERNET) {
+        ctm_installation_queue_xmlsitemap_rebuild();
+      }
+      $info_install = system_get_info('module', 'ctm_installation');
+      $modules_permanant = array_flip($info_install['dependencies']); // pour filtrer la plus part des modules non desactivable
+      $modules_permanant['ctm_installation'] = 1;
+      foreach ($items as $feature_name => $componants) {
+        // uniquement pour les feature controle par le client
+        $info = features_get_features($feature_name)->info;
+        if($info['package'] != CTM_PKG_CLIENT) {
+          continue;
+        }
+
+        // on supprime les content type,les node,les term et vocabulaire d'une feature
+        if (!empty($info['features']['node'])) {
+          ctm_installation_queue_cts_and_nodes_delete($info['features']['node']);
+        }
+        if (!empty($info['features']['taxonomy'])) {
+          ctm_installation_queue_vocabulary_delete($info['features']['taxonomy']);
+        }
+
+        // on desactive les modules liee a une features
+        $list_dependance = $info['dependencies'];
+        $list_module = array();
+        $fct = $feature_name . '_default_modules_alter';
+        if (function_exists($fct)) {
+          $fct($list_module);
+          if (!empty($list_module)) {
+            ctm_installation_queue_module_disable($list_module);
+          }
+        }
+        foreach ($list_dependance as $key => $value) {
+          if (isset($modules_permanant[$value])) {
+            unset($list_dependance[$key]);
+          }
+        }
+        if (!empty($list_dependance)) {
+          ctm_installation_queue_module_disable($list_dependance);
+        }
+      }
+      break;
+  } // switch
+}
+
+/**
+ * on masque les features d'exemple fournis par les modules
+ * et les features qui ne correspondent pas au profile
+ */
+function ctm_installation_system_info_alter(&$info, $file, $type) {
+  if (isset($info['features']) && isset($info['package']) &&
+      $info['package'] != CTM_PKG_CLIENT &&
+      !user_access('administer features')) {
+    $info['hidden'] = TRUE;
+  }
+}
+
+/**
+ * hook_ckeditor_plugin pour pouvoir utiliser les plugin supplementaire pour ckeditor
+ * @param $install bool (internal use) : Indique si il s'agit de la phase d'install de ctm_installation (false si utilise comme un hook)
+ */
+function ctm_installation_ckeditor_plugin($install = FALSE) {
+  // ajout de la variable js avec le chemin du theme back
+  if ($install) {
+    $prefix = '%base_path%';
+  }
+  else {
+    $prefix = '';
+  }
+  return array(
+      'blockimagepaste' => array(
+          // Name of the plugin used to write it.
+          'name' => 'blockimagepaste',
+          // Description of the plugin - it would be displayed in the plugins management section of profile settings.
+          'desc' => t('Plugin to desactivate drag and drop of image'),
+          // The full path to the CKEditor plugins directory, with the trailing slash.
+          'path' => $prefix . drupal_get_path('module', 'ctm_installation') . '/ckeditor_plugins/blockimagepaste/',
+          'buttons' => FALSE,
+      ),
+      'abbr' => array(
+          'name' => 'abbr',
+          'desc' => t('Plugin to use abbr tag (abbreviation tooltip)'),
+          'path' => $prefix . drupal_get_path('module', 'ctm_installation') . '/ckeditor_plugins/abbr/',
+          'buttons' => array(
+              'Abbr' => array(
+                  'label' => 'Abbr',
+                  'icon' => 'images/icon.png',
+              ),
+          ),
+      ),
+      'imagemaps' => array(
+          'name' => 'imagemaps',
+          'desc' => t('Plugin to use image maps'),
+          'path' => $prefix . drupal_get_path('module', 'ctm_installation') . '/ckeditor_plugins/imagemaps/',
+          'buttons' => array(
+              'ImageMaps' => array(
+                  'label' => 'Image Maps',
+                  'icon' => 'icons/imagemaps.png',
+              ),
+          ),
+      ),
+      'ctm_ckeditor_image' => array(
+          'name' => 'enhanced_image',
+          'desc' => t('CKEditor Image - Enhanced Image plugin'),
+          'path' => $prefix . drupal_get_path('module', 'ctm_installation') . '/ckeditor_plugins/enhanced_image/',
+          'default' => 't',
+          'buttons' => array(
+              'EnhancedImage' => array(
+                  'label' => 'Enhanced Image',
+                  'icon' => 'images/image.png',
+              ),
+          ),
+      ),
+  );
+}
+
+/**
+ * Implements hook_menu_alter().
+ * pour que taxonomy manager gere les droits correctement a partir de vppr
+ */
+function ctm_installation_menu_alter(&$items) {
+  //overview
+  unset($items['admin/structure/taxonomy_manager/childform']['access arguments']);
+  unset($items['admin/structure/taxonomy_manager/weight']['access arguments']);
+  unset($items['admin/structure/taxonomy_manager/siblingsform']['access arguments']);
+  unset($items['admin/structure/taxonomy_manager/export']['access arguments']);
+  unset($items['taxonomy_manager/autocomplete']['access arguments']);
+
+  $items['admin/structure/taxonomy_manager/childform']['access callback'] = 'vppr_access_taxonomy';
+  $items['admin/structure/taxonomy_manager/weight']['access callback'] = 'vppr_access_taxonomy';
+  $items['admin/structure/taxonomy_manager/siblingsform']['access callback'] = 'vppr_access_taxonomy';
+  $items['admin/structure/taxonomy_manager/export']['access callback'] = 'vppr_access_taxonomy';
+  $items['taxonomy_manager/autocomplete']['access callback'] = 'vppr_access_taxonomy';
+  //term list
+  $items['admin/structure/taxonomy_manager/voc/%taxonomy_vocabulary_machine_name']['access callback'] = 'vppr_access_vocabulary_terms';
+  $items['admin/structure/taxonomy_manager/voc/%taxonomy_vocabulary_machine_name']['access arguments'] = array(4);
+}
+
+/**
+ * Implements hook_admin_menu_map().
+ * ajoute les sous menu a admin menu pour la taxo quand on est pas admin
+ */
+function ctm_installation_admin_menu_map() {
+  if (user_access('administer taxonomy')) {
+    return;
+  }
+  if (!vppr_access_taxonomy()) {
+    return;
+  }
+  $list_taxo = taxonomy_vocabulary_get_names();
+  $list_taxo_filtered = array();
+  foreach ($list_taxo as $voc) {
+    if (vppr_access_vocabulary_terms($voc)) {
+      $list_taxo_filtered[] = $voc->machine_name;
+    }
+  }
+  $map['admin/structure/taxonomy_manager/voc/%taxonomy_vocabulary_machine_name'] = array(
+      'parent' => 'admin/structure/taxonomy',
+      'arguments' => array(
+          array('%taxonomy_vocabulary_machine_name' => $list_taxo_filtered),
+      ),
+  );
+  return $map;
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter().
+ * supprime le switch de vocabulaire qui peut afficher des vocabulaire non autorise
+ */
+function ctm_installation_form_taxonomy_manager_form_alter(&$form, &$form_state, $form_id) {
+  unset($form['jump']);
+  unset($form['toolbar']['double_tree_show']); //Desactivation du bouton "double arborescence"
+  $form['term_data']['description']['#access'] = FALSE; // Desactive la descriptiion
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Desactive la descriptiion des termes de taxonomie
+ */
+function ctm_installation_form_taxonomy_form_term_alter(&$form, &$form_state, $form_id) {
+  $form['description']['#access'] = FALSE;
+}
+
+/**
+ * Desactive les modules de dev en rec et en prod
+ * la frequence est set via ultimate cron
+ * Implements hook_cron().
+ */
+function ctm_installation_cron() {
+
+  // on ne le fait pas si on est sur l'environnement de dev
+  if (variable_get('environnement', 'dev') == 'dev') {
+    return;
+  }
+
+  $devel_modules = ctm_installation_get_devel_modules();
+  $devel_modules = array_intersect(module_list(FALSE, FALSE), $devel_modules);
+  if (!empty($devel_modules)) {
+    variable_set('admin_menu_devel_modules_enabled', variable_get('admin_menu_devel_modules_activatable'));
+    // Disable developer modules.
+    module_disable($devel_modules);
+  }
+}
+
+/**
+ * Implements hook_filter_info().
+ * defini un filtre qui enleve les contenteditable="false" et les
+ * contenteditable="true" qui on ete ajoute par les modeles dans e wysiwyg
+ */
+function ctm_installation_filter_info() {
+  return array(
+      'ctm_contenteditable' => array(
+          'title' => t('Remove contenteditable attribut'),
+          'process callback' => '_ctm_installation_contenteditable',
+      )
+  );
+}
+
+/**
+ * Implements hook_help().
+ *  Reminder
+ */
+function ctm_installation_help($path, $arg) {
+  if (!empty($_SESSION['ctm_reminder'])) {
+    foreach ($_SESSION['ctm_reminder'] as $datas) {
+      if ($path != $datas['path'] && $path != 'batch' && strpos($path, '#') === FALSE && user_access('access administration pages')) {
+        drupal_set_message($datas['message'], 'error');
+      }
+    }
+  }
+}
+
+/**
+ * defini un filtre qui enleve les contenteditable="false" et les
+ * contenteditable="true" qui on ete ajoute par les modeles dans e wysiwyg
+ * @param type $text
+ * @param type $filter
+ * @param type $format
+ * @param type $langcode
+ * @param type $cache
+ * @param type $cache_id
+ * @return type
+ */
+function _ctm_installation_contenteditable($text, $filter, $format, $langcode, $cache, $cache_id) {
+  $text = str_replace('contenteditable="false"', '', $text);
+  $text = str_replace('contenteditable="true"', '', $text);
+  return $text;
+}
+
+/**
+ * Implements hook_query_TAG_alter().
+ * permet d'afficher les menu pour les contenu non publie
+ */
+function ctm_installation_query_node_access_alter(QueryAlterableInterface $query) {
+  if (user_access('administer main-menu menu items') && arg(0) == 'admin') {
+    $c = &$query->conditions();
+    // Remove the status condition if we suspect this query originates from
+    // menu_tree_check_access().
+    if (count($c) == 3 &&
+        is_string($c[0]['field']) && $c[0]['field'] == 'n.status' &&
+        is_string($c[1]['field']) && $c[1]['field'] == 'n.nid' && $c[1]['operator'] == 'IN') {
+      unset($c[0]);
+    }
+  }
+}
+
+/**
+ * Implements hook_features_api().
+ * Pour que le composant user permission de feature s'execute en derniers
+ * ainsi que menu_link
+ */
+function ctm_installation_features_api_alter(&$components) {
+  $components['dependencies']['weight'] = -100;
+  $components['menu_custom']['weight'] = -90;
+  $components['filter']['weight'] = -80;
+  $components['metatag']['weight'] = -70;
+  $components['ctools']['weight'] = -60;
+  $components['field']['weight'] = -50;
+  $components['field_base']['weight'] = -40;
+  $components['field_group']['weight'] = -30;
+  $components['file_display']['weight'] = -20;
+  $components['file_type']['weight'] = -20;
+  $components['taxonomy']['weight'] = -10;
+  $components['node']['weight'] = 0;
+  $components['field_instance']['weight'] = 10;
+  $components['uuid_term']['weight'] = 20;
+  $components['uuid_node']['weight'] = 30;
+  $components['uuid_bean']['weight'] = 30;
+  $components['uuid_entities']['weight'] = 30;
+  $components['views_view']['weight'] = 40;
+  $components['menu']['weight'] = 50;
+  $components['menu_links']['weight'] = 60;
+  $components['page_manager_pages']['weight'] = 70;
+  $components['page_manager_handlers']['weight'] = 80;
+  $components['rules_config']['weight'] = 90;
+  $components['user_permission']['weight'] = 100;
+}
+
+/**
+ * Implements hook_preprocess_webform_form().
+ * Permet d'ajouter une suggestion de template de type :
+ * - webform_form__[content_type].tpl.php
+ * - webform_form__[field_ctm_webform_id].tpl.php
+ * - webform_form__[content_type]__[field_ctm_webform_id].tpl.php
+ */
+function ctm_installation_preprocess_webform_form(&$vars) {
+  $node = menu_get_object('node');
+  if( !empty($node) && isset($node->webform) ) {
+    $vars['theme_hook_suggestions'][] = 'webform_form__'.$node->type;
+    if(!empty($node->field_ctm_webform_id[LANGUAGE_NONE][0]['safe_value'])) {
+      $vars['theme_hook_suggestions'][] = 'webform_form__'.$node->field_ctm_webform_id[LANGUAGE_NONE][0]['safe_value'];
+      $vars['theme_hook_suggestions'][] = 'webform_form__'.$node->type.'__'.$node->field_ctm_webform_id[LANGUAGE_NONE][0]['safe_value'];
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_page()
+ * Permet d'ajouter des suggestion de template et les classe associer
+ * 'node__[content_type]__[view_mode].tpl.php
+ * @param $vars
+ */
+function ctm_installation_preprocess(&$vars, $hook) {
+  switch($hook) {
+    case 'node' :
+      $ref = $vars['node'];
+      $type = 'node';
+      $id = $vars['type'];
+      break;
+    default : // page, html ...
+      $menu = menu_get_item();
+      switch($menu['path']) {
+        case 'taxonomy/term/%':
+          $ref = $menu['page_arguments'][0];
+          $id = $ref->vocabulary_machine_name;
+          $type = 'taxonomy';
+          break;
+        case 'node/%':
+          $ref = $menu['page_arguments'][0];
+          $id = $ref->type;
+          $type = 'node';
+        break;
+        default: // views or other module
+          $ref = new stdClass();
+          if(!empty($vars['type'])) {
+            $type = 'node';
+            $id = $vars['type'];
+          } elseif(!empty($vars['vocabulary_machine_name'])) {
+            $type = 'taxonomy';
+            $id = $vars['vocabulary_machine_name'];
+          } else {
+            return;
+          }
+      }
+  }
+  if(isset($ref->template_picker)) {
+    $picker = $ref->template_picker;
+    $pos = strpos($picker,'-tp-');
+    $picker = substr($picker, $pos);
+    $picker_c = str_replace('_','-',$picker);
+    $picker = '_'.str_replace('-','_',$picker);
+  }
+  $id_c = '-'.str_replace('_','-',$id);
+  $id = '__'.str_replace('-','_',$id);
+  if($hook == $type) {
+    $signature_c = $signature = $hook;
+  } else {
+    $signature_c = $hook.'-'.$type;
+    $signature = $hook.'__'.$type;
+  }
+  $vars['classes_array'][] = $signature_c.$id_c;
+  $vars['theme_hook_suggestions'][] = $signature.$id;
+  if(!empty($vars['view_mode'])) {
+    $mode_c = '-'.str_replace('_','-',$vars['view_mode']);
+    $mode = '__'.str_replace('-','_',$vars['view_mode']);
+    $vars['classes_array'][] = $signature_c.$id_c.$mode_c;
+    $vars['theme_hook_suggestions'][] = $signature.$id.$mode;
+  }
+  if(!empty($picker)) {
+    if($hook != $type) {
+      $vars['classes_array'][] = $hook.$picker_c;
+      $vars['theme_hook_suggestions'][] = $hook.$picker;
+    }
+    $vars['classes_array'][] = $signature_c.$picker_c;
+    $vars['theme_hook_suggestions'][] = $signature.$picker;
+    $vars['classes_array'][] = $signature_c.$id_c.$picker_c;
+    $vars['theme_hook_suggestions'][] = $signature.$id.$picker;
+    if(!empty($vars['view_mode'])) {
+      if($hook != $type) {
+        $vars['classes_array'][] = $hook.$picker_c.$mode_c;
+        $vars['theme_hook_suggestions'][] = $hook.$picker.$mode;
+      }
+      $vars['classes_array'][] = $signature_c.$picker_c.$mode_c;
+      $vars['theme_hook_suggestions'][] = $signature.$picker.$mode;
+      $vars['classes_array'][] = $signature_c.$id_c.$picker_c.$mode_c;
+      $vars['theme_hook_suggestions'][] = $signature.$id.$picker.$mode;
+    }
+  }
+}
+
+/**
+ * corrige un bug combine de uuid_feature et entity_translation
+ * qui fait qu'une feature avec des node apparait overriden alors qu elle ne
+ * l'est pas
+ * @param type $export
+ * @param type $node
+ * @param type $module
+ */
+function ctm_installation_uuid_node_features_export_render_alter(&$export, $node, $module) {
+  if(isset($export->entity_translation_handler_id)) {
+    unset($export->entity_translation_handler_id);
+  }
+}
+
+/**
+ * Implements THEME_preprocess_image(&$variables)
+ * affect le alt au title si il n y a pas de title aux image
+ * @param Array $variables
+ */
+function ctm_installation_preprocess_image(&$variables) {
+  // Si la balise title est vide et que Alt exist, on surchage Title avec Alt :
+  if(!empty($variables['alt']) && empty($variables['title'])) {
+    $variables['title'] = $variables['alt'];
+  }
+}
+
+/**
+ * Implements hook_html_head_alter()
+ * gestion couleur bandeau admin en fonction de l environnement
+ */
+function ctm_installation_preprocess_html(&$variables) {
+  switch(variable_get('environnement', 'prod')) {
+    case 'dev':
+      drupal_add_css('#admin-menu {background-image: none !important; background-color: #881010 !important;}', 'inline');
+      break;
+    case 'prod':
+      break;
+    default :
+      drupal_add_css('#admin-menu {background-image: none !important; background-color: #108810 !important;}', 'inline');
+      break;
+  }
+}

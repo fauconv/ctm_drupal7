@@ -1,0 +1,6 @@
+name = CTM node block
+description = define a content type block managed by administrator
+core = 7.x
+package = CTM
+
+dependencies[] = node_block

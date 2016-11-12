@@ -1,0 +1,11 @@
+name = Template Picker
+description = Allows content creators to pick their template of choice from the node or entity creation page.
+core = 7.x
+dependencies[] = node
+dependencies[] = entity
+; Information added by Drupal.org packaging script on 2013-12-31
+version = "7.x-1.1"
+core = "7.x"
+project = "template_picker"
+datestamp = "1388467407"
+

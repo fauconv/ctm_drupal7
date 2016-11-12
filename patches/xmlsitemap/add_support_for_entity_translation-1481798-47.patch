@@ -1,0 +1,307 @@
+diff --git a/xmlsitemap.install b/xmlsitemap.install
+index 916ebec..44ef8d2 100644
+--- a/xmlsitemap.install
++++ b/xmlsitemap.install
+@@ -239,7 +239,7 @@ function xmlsitemap_schema() {
+         'default' => 0,
+       ),
+     ),
+-    'primary key' => array('id', 'type'),
++    'primary key' => array('id', 'type', 'language'),
+     'indexes' => array(
+       'loc' => array('loc'),
+       'access_status_loc' => array('access', 'status', 'loc'),
+@@ -568,3 +568,11 @@ function _xmlsitemap_sitemap_rehash_all() {
+     }
+   }
+ }
++
++/**
++ * Add new primary key including the language.
++ */
++function xmlsitemap_update_7204() {
++  db_drop_primary_key('xmlsitemap');
++  db_add_primary_key('xmlsitemap', array('id', 'type', 'language'));
++}
+diff --git a/xmlsitemap.module b/xmlsitemap.module
+index 09d02ea..7f54f7e 100644
+--- a/xmlsitemap.module
++++ b/xmlsitemap.module
+@@ -603,7 +603,17 @@ function xmlsitemap_link_save(array $link, array $context = array()) {
+     $link['changecount'] = 0;
+   }
+ 
+-  $existing = db_query_range("SELECT loc, access, status, lastmod, priority, changefreq, changecount, language FROM {xmlsitemap} WHERE type = :type AND id = :id", 0, 1, array(':type' => $link['type'], ':id' => $link['id']))->fetchAssoc();
++  $link_keys = array('type', 'id');
++
++  // If entity translation exists and the link has a language we need to add the
++  // language to the query to fetch the unique / language specific link.
++  if (module_exists('entity_translation') && entity_get_info($link['type']) && entity_translation_enabled($link['type']) && !empty($link['language'])) {
++    $existing = db_query_range("SELECT loc, access, status, lastmod, priority, changefreq, changecount, language FROM {xmlsitemap} WHERE type = :type AND id = :id AND language = :language", 0, 1, array(':type' => $link['type'], ':id' => $link['id'], ':language' => $link['language']))->fetchAssoc();
++    $link_keys[] = 'language';
++  }
++  else {
++    $existing = db_query_range("SELECT loc, access, status, lastmod, priority, changefreq, changecount, language FROM {xmlsitemap} WHERE type = :type AND id = :id", 0, 1, array(':type' => $link['type'], ':id' => $link['id']))->fetchAssoc();
++  }
+ 
+   // Check if this is a changed link and set the regenerate flag if necessary.
+   if (!variable_get('xmlsitemap_regenerate_needed', FALSE)) {
+@@ -612,7 +622,7 @@ function xmlsitemap_link_save(array $link, array $context = array()) {
+ 
+   // Save the link and allow other modules to respond to the link being saved.
+   if ($existing) {
+-    drupal_write_record('xmlsitemap', $link, array('type', 'id'));
++    drupal_write_record('xmlsitemap', $link, $link_keys);
+     module_invoke_all('xmlsitemap_link_update', $link, $context);
+   }
+   else {
+@@ -663,11 +673,17 @@ function xmlsitemap_link_update_multiple($updates = array(), $conditions = array
+  *   A string with the entity type.
+  * @param $entity_id
+  *   An integer with the entity ID.
++ * @param $langcode
++ *  An optionnal language code for the link that should be deleted.
++ *  If omitted, links for that entity will be removed in all languages.
+  * @return
+  *   The number of links that were deleted.
+  */
+-function xmlsitemap_link_delete($entity_type, $entity_id) {
++function xmlsitemap_link_delete($entity_type, $entity_id, $langcode = NULL) {
+   $conditions = array('type' => $entity_type, 'id' => $entity_id);
++  if ($langcode) {
++    $conditions['language'] = $langcode;
++  }
+   return xmlsitemap_link_delete_multiple($conditions);
+ }
+ 
+@@ -1151,6 +1167,14 @@ function xmlsitemap_field_attach_delete_bundle($entity_type, $bundle, $instances
+ }
+ 
+ /**
++ * Implements hook_entity_translation_delete().
++ */
++function xmlsitemap_entity_translation_delete($entity_type, $entity, $langcode) {
++  list($id, $vid, $bundle) = entity_extract_ids($entity_type, $entity);
++  xmlsitemap_link_delete($entity_type, $id, $langcode);
++}
++
++/**
+  * Determine the frequency of updates to a link.
+  *
+  * @param $interval
+@@ -1593,3 +1617,42 @@ function xmlsitemap_link_enqueue($type, $ids) {
+   $queue = DrupalQueue::get('xmlsitemap_link_process');
+   $queue->createItem($data);
+ }
++
++/**
++ * Determines the languages to process for an entity.
++ *
++ * If entity_translation is available the languages are determined by using the
++ * translation handler, otherwise it falls back to the default language.
++ * Only the language of published translations are returned.
++ *
++ * @param string $entity_type
++ *   The type of entity.
++ * @param object $entity
++ *   The entity.
++ * @param string $default_language
++ *   Set the default language to use if no translations / entity languages where
++ *   found.
++ *
++ * @return array
++ *   Array with the language codes of available languages.
++ *   Returns only languages of published translations. If entity isn't handled
++ *   by entity translation the default language is used.
++ */
++function xmlsitemap_get_entity_languages($entity_type, $entity, $default_language = LANGUAGE_NONE) {
++  if (module_exists('entity_translation')) {
++    if (entity_translation_enabled($entity_type, $entity)) {
++      $handler = entity_translation_get_handler($entity_type, $entity);
++      if (!empty($handler)) {
++        $languages = array();
++        $translations = $handler->getTranslations();
++        foreach ($translations->data as $translation_lang => $translation_data) {
++          if (!empty($translation_data['status'])) {
++            $languages[$translation_lang] = $translation_lang;
++          }
++        }
++        return $languages;
++      }
++    }
++  }
++  return array($default_language);
++}
+diff --git a/xmlsitemap_i18n/xmlsitemap_i18n.install b/xmlsitemap_i18n/xmlsitemap_i18n.install
+new file mode 100644
+index 0000000..1eddcd7
+--- /dev/null
++++ b/xmlsitemap_i18n/xmlsitemap_i18n.install
+@@ -0,0 +1,63 @@
++<?php
++
++/**
++ * @file
++ * Install, update and uninstall functions for the xmlsitemap_i18n module.
++ *
++ * @ingroup xmlsitemap
++ */
++
++/**
++ * Implements hook_install().
++ *
++ * If there are any languages enabled, install a sitemap for each, and delete
++ * the default sitemap (created by xmlsitemap) with no language context.
++ */
++function xmlsitemap_i18n_install() {
++  if (module_exists('locale') && ($languages = array_keys(locale_language_list()))) {
++
++    // Delete the default sitemap with no language context. It should be
++    // removed so that it doesn't conflict with the to-be-created sitemap for
++    // the default language.
++    $context = array();
++    db_delete('xmlsitemap_sitemap')
++      ->condition('context', serialize($context))
++      ->execute();
++
++    // Add a sitemap for each language.
++    foreach ($languages as $language) {
++      $context = array('language' => $language);
++      db_insert('xmlsitemap_sitemap')
++        ->fields(array(
++          'smid' => xmlsitemap_sitemap_get_context_hash($context),
++          'context' => serialize($context),
++        ))
++        ->execute();
++    }
++  }
++}
++
++/**
++ * Implements hook_uninstall().
++ *
++ * Delete sitemaps related to languages and set 1 default sitemap.
++ */
++function xmlsitemap_i18n_uninstall() {
++  if (module_exists('locale') && ($languages = array_keys(locale_language_list()))) {
++    // Delete sitemap for each language.
++    foreach ($languages as $language) {
++      $context = array('language' => $language);
++      db_delete('xmlsitemap_sitemap')
++        ->condition('context', serialize($context))
++        ->execute();
++    }
++
++    // Add default sitemap.
++    db_insert('xmlsitemap_sitemap')
++      ->fields(array(
++        'smid' => xmlsitemap_sitemap_get_context_hash($context),
++        'context' => serialize($context),
++      ))
++      ->execute();
++  }
++}
+diff --git a/xmlsitemap_node/xmlsitemap_node.module b/xmlsitemap_node/xmlsitemap_node.module
+index 3d0e534..3704241 100644
+--- a/xmlsitemap_node/xmlsitemap_node.module
++++ b/xmlsitemap_node/xmlsitemap_node.module
+@@ -40,7 +40,16 @@ function xmlsitemap_node_xmlsitemap_process_node_links(array $nids) {
+   $nodes = node_load_multiple($nids);
+   foreach ($nodes as $node) {
+     $link = xmlsitemap_node_create_link($node);
+-    xmlsitemap_link_save($link, array($link['type'] => $node));
++    if (!empty($link['languages'])) {
++      foreach ($link['languages'] as $lang) {
++        $lang_link = $link;
++        $lang_link['language'] = $lang;
++        xmlsitemap_link_save($lang_link, array($link['type'] => $node));
++      }
++    }
++    else {
++      xmlsitemap_link_save($link, array($link['type'] => $node));
++    }
+   }
+ }
+ 
+@@ -56,7 +65,16 @@ function xmlsitemap_node_node_insert(stdClass $node) {
+  */
+ function xmlsitemap_node_node_update(stdClass $node) {
+   $link = xmlsitemap_node_create_link($node);
+-  xmlsitemap_link_save($link, array($link['type'] => $node));
++  if (is_array($link['language']) && !empty($link['language'])) {
++    foreach ($link['language'] as $lang) {
++      $lang_link = $link;
++      $lang_link['language'] = $lang;
++      xmlsitemap_link_save($lang_link, array($link['type'] => $node));
++    }
++  }
++  else {
++    xmlsitemap_link_save($link, array($link['type'] => $node));
++  }
+ }
+ 
+ /**
+@@ -204,7 +222,10 @@ function xmlsitemap_node_create_link(stdClass $node) {
+   $node->xmlsitemap['loc'] = $uri['path'];
+   $node->xmlsitemap['lastmod'] = count($timestamps) ? max($timestamps) : 0;
+   $node->xmlsitemap['access'] = $node->nid ? xmlsitemap_node_view_access($node, drupal_anonymous_user()) : 1;
+-  $node->xmlsitemap['language'] = isset($node->language) ? $node->language : LANGUAGE_NONE;
++  // Fetches the languages for the sitemap link / links.
++  $language = isset($node->language) ? $node->language : LANGUAGE_NONE;
++  $node->xmlsitemap['language'] = $language;
++  $node->xmlsitemap['languages'] = xmlsitemap_get_entity_languages('node', $node, $language);
+ 
+   return $node->xmlsitemap;
+ }
+diff --git a/xmlsitemap_taxonomy/xmlsitemap_taxonomy.module b/xmlsitemap_taxonomy/xmlsitemap_taxonomy.module
+index 88f6a60..861da41 100644
+--- a/xmlsitemap_taxonomy/xmlsitemap_taxonomy.module
++++ b/xmlsitemap_taxonomy/xmlsitemap_taxonomy.module
+@@ -50,7 +50,16 @@ function xmlsitemap_taxonomy_xmlsitemap_process_taxonomy_term_links(array $tids)
+   $terms = taxonomy_term_load_multiple($tids);
+   foreach ($terms as $term) {
+     $link = xmlsitemap_taxonomy_create_link($term);
+-    xmlsitemap_link_save($link, array($link['type'] => $term));
++    if (!empty($link['languages'])) {
++      foreach ($link['languages'] as $lang) {
++        $lang_link = $link;
++        $lang_link['language'] = $lang;
++        xmlsitemap_link_save($lang_link, array($link['type'] => $term));
++      }
++    }
++    else {
++      xmlsitemap_link_save($link, array($link['type'] => $term));
++    }
+   }
+ }
+ 
+@@ -115,7 +124,16 @@ function xmlsitemap_taxonomy_term_insert(stdClass $term) {
+  */
+ function xmlsitemap_taxonomy_term_update(stdClass $term) {
+   $link = xmlsitemap_taxonomy_create_link($term);
+-  xmlsitemap_link_save($link, array($link['type'] => $term));
++  if (is_array($link['language']) && !empty($link['language'])) {
++    foreach ($link['language'] as $lang) {
++      $lang_link = $link;
++      $lang_link['language'] = $lang;
++      xmlsitemap_link_save($lang_link, array($link['type'] => $term));
++    }
++  }
++  else {
++    xmlsitemap_link_save($link, array($link['type'] => $term));
++  }
+ }
+ 
+ /**
+@@ -175,7 +193,10 @@ function xmlsitemap_taxonomy_create_link(stdClass &$term) {
+   // @todo How can/should we check taxonomy term access?
+   $term->xmlsitemap['loc'] = $uri['path'];
+   $term->xmlsitemap['access'] = 1;
+-  $term->xmlsitemap['language'] = isset($term->language) ? $term->language : LANGUAGE_NONE;
++  // Fetches the languages for the sitemap link / links.
++  $language = isset($term->language) ? $term->language : LANGUAGE_NONE;
++  $term->xmlsitemap['language'] = $language;
++  $term->xmlsitemap['languages'] = xmlsitemap_get_entity_languages('taxonomy_term', $term, $language);
+ 
+   return $term->xmlsitemap;
+ }

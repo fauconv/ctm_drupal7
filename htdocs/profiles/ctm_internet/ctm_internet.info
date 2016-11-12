@@ -1,0 +1,20 @@
+name = "internet"
+description = "Installation standard - Site internet"
+version = 7.x-1.0
+core = 7.x
+
+dependencies[] = ctm_installation
+
+;fonctionnalites supplementaires internet
+dependencies[] = metatag
+dependencies[] = metatag_views
+dependencies[] = metatag_views_overview
+dependencies[] = xmlsitemap
+dependencies[] = xmlsitemap_menu
+dependencies[] = eu_cookie_compliance
+
+; cache : temporairement desacitive le temps de coder boost alias
+;dependencies[] = boost
+;dependencies[] = expire
+;dependencies[] = expire_alias
+;dependencies[] = boost_alias

@@ -1,0 +1,8 @@
+name = CTM Masquerade
+project = "ctm_masquerade"
+description = like contrib module "masquerade" but more flexible with external login from xml file
+package = "CTM"
+
+core = 7.x
+
+version = "7.x-1.0"

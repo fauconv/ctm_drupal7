@@ -1,0 +1,24 @@
+<?php
+
+/**
+ *
+ **/
+function ctm_form_field_conditional_state_settings_alter(&$settings) {
+
+  $settings['countries_continent'] = array(
+      'form_elements' => array(array('continent')),
+      'field_data' => array(),
+      // If reprocess_from_root is set to true, the field will be reprocessed
+      // during the after_build phase of the form root.
+      'reprocess_from_root' => TRUE,
+      'field_states' => array('enabled',
+        'disabled',
+        'required',
+        'optional',
+        'visible',
+        'invisible',),
+      'trigger_states' => array('empty', 'filled', 'value'),
+      'trigger_value_widget' => '_field_conditional_state_select_trigger_value_widget',
+      'trigger_value_submit' => '_field_conditional_state_select_trigger_value_submit',
+    );
+}

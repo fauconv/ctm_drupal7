@@ -1,0 +1,131 @@
+<?php
+/**
+ * @file
+ * Fichier regroupant toutes les parties commune entre le profil internetge et intranetge pour le fichier .install
+ */
+if(variable_get('install_task') == 'done' && function_exists('ctm_installation_user_roles')) {
+  global $ctm_installation_dir, $ctm_installation_roles, $ctm_installation_profile;
+  $ctm_installation_roles = ctm_installation_user_roles();
+  $ctm_installation_profile = drupal_get_profile();
+}
+
+/**
+ * Implements hook_install().
+ * lance ctm_installation avant les autres modules pour que le menu exist
+ */
+function ctm_installation_install() {
+  // ordre du module
+  // pour pouvoir gerer le fix de taxonomy manager
+  db_update('system')
+    ->fields(array('weight' => 50))
+    ->condition('name', 'ctm_installation', '=')
+    ->execute();
+
+  //Initialise les dossiers de structure et les dossiers par default
+  $media_path = 'media/' . substr(conf_path(), 6) . '/';
+  variable_set('file_temporary_path', $media_path . 'tmp');
+  variable_set('file_public_path', $media_path . 'files');
+  variable_set('file_private_path', $media_path . 'private');
+}
+
+/**
+ * Implements hook_requirements().
+ * affiche le numero de version de la ferme dans le tableau de bord d'administration. La version est prise dans le fichier release.properties
+ */
+function ctm_installation_requirements($phase) {
+  $requirements = array();
+
+  switch($phase) {
+    case 'runtime':
+      $requirements['ctm_installation_version'] = array(
+          'title' => 'Build version',
+          'value' => 'release file not found',
+          'severity' => REQUIREMENT_WARNING,
+      );
+      $version = ctm_installation_get_version_info();
+      if($version['dist'] != '') {
+        $requirements['ctm_installation_version']['value'] = '<ul><li>Distribution: '.$version['dist'].'</li><li>Application: '.$version['app'].'</li><li>Build: '.$version['build'].'</li></ul>';
+        $requirements['ctm_installation_version']['severity'] = REQUIREMENT_INFO;
+      }
+      break;
+  }
+
+  return $requirements;
+}
+
+/**
+ * Permet d executer l update dans l ordre
+ * 1) les contrib
+ * 2) les modules et feature ctm
+ * 5) ctm_installation
+ * combine avec les autre hook du meme type
+ * @return array
+ */
+function ctm_installation_update_dependencies() {
+  $dependencies = array();
+  ctm_installation_set_dependencies_contrib($dependencies, 'ctm_installation');
+  ctm_installation_set_dependencies_ctm($dependencies, 'ctm_installation');
+  return $dependencies;
+}
+
+/**
+ * cree une dependance entre module et depend_de (ce lit : module depend de)
+ * "module" est execute apres "depend de" pour le hook_update_dependencies
+ * si des mises a jour doivent etre faite simultanement sur les 2 modules
+ * @param array $dependencies
+ * @param string $module
+ * @param mixed $depend_de
+ */
+function ctm_installation_set_dependency(&$dependencies, $module, $depend_de) {
+  $list = ctm_installation_update_get_update_list();
+  if (!isset($list[$depend_de]) || !isset($list[$module])) {
+    return; // l un au moins des 2module ne va pas etre mis a jour
+  }
+  end($list[$depend_de]['pending']);
+  $dependencies[$module][$list[$module]['start']][$depend_de] = key($list[$depend_de]['pending']);
+}
+
+/**
+ * cree une dependance entre $module et l'ensemble des modules contrib
+ * @param array $dependencies
+ * @param array $list
+ * @param string $module
+ * @param mixed $depend_de
+ */
+function ctm_installation_set_dependencies_contrib(&$dependencies, $module) {
+  $list = ctm_installation_update_get_update_list();
+  foreach ($list as $name => $value) {
+    if (substr($name, 0, 4) == 'ctm_' || substr($name, 0, 4) == 'fte_' || $name == $module) {
+      continue;
+    }
+    ctm_installation_set_dependency($dependencies, $module, $name);
+  }
+}
+
+/**
+ * cree une dependance entre $module et l'ensemble des modules ctm sauf ctm_installation
+ * @param array $dependencies
+ * @param array $list
+ * @param string $module
+ * @param mixed $depend_de
+ */
+function ctm_installation_set_dependencies_ctm(&$dependencies, $module) {
+  $list = ctm_installation_update_get_update_list();
+  foreach ($list as $name => $value) {
+    if (substr($name, 0, 4) != 'ctm_' || $name == $module || $name == 'ctm_installation') {
+      continue;
+    }
+    ctm_installation_set_dependency($dependencies, $module, $name);
+  }
+}
+
+/**
+ * mets en cache les donnes de update_get_update_list() pour pouvoir l'appeler souvent
+ */
+function ctm_installation_update_get_update_list() {
+  static $list;
+  if (!isset($list)) {
+    $list = update_get_update_list();
+  }
+  return $list;
+}

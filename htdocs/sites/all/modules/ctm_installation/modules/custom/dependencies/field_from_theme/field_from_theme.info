@@ -1,0 +1,8 @@
+name = "Field from theme"
+description = "A widget + a field formater to use on a blob field."
+core = 7.x
+package = "Fields"
+version = "7.x-1.0"
+
+dependencies[] = template_picker
+dependencies[] = blob

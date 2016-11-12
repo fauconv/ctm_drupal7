@@ -1,0 +1,13 @@
+Index: www/sites/all/modules/contrib/shs/shs.module
+===================================================================
+--- www/sites/all/modules/contrib/shs/shs.module	(revision 1850)
++++ www/sites/all/modules/contrib/shs/shs.module	(working copy)
+@@ -494,7 +494,7 @@
+   switch ($display['type']) {
+     case 'shs_default':
+       foreach ($items as $delta => $item) {
+-        if (empty($item['tid'])) {
++        if (empty($item['term'])) {
+           continue;
+         }
+         $list_items = array();

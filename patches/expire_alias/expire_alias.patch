@@ -1,0 +1,32 @@
+Index: www/sites/all/modules/contribs/expire_alias/expire_alias.module
+===================================================================
+27a28
+>   if(isset($form['format']['expire_include_base_url'])) {
+30c31
+<   $form['format']['expire_include_base_url']['#description'] = $form['format']['expire_include_base_url']['#description'] . ' <em>' . t('NOTE: This option is disabled when using Expire Aliases (below).') . '</em>';
+---
+>     $form['format']['expire_include_base_url']['#description'] = ' <em>' . t('NOTE: This option is disabled when using Expire Aliases (below).') . '</em>';
+32a34
+> }
+41a44,47
+>   global $base_url;
+>   $urls = array();
+>   $base_Length = strlen($base_url) + 1; // +1 for the last '/'
+>   
+45,47c51
+<   $domains = preg_split('/[\r\n]+/', $domainlist, -1, PREG_SPLIT_NO_EMPTY); //@todo can we not just use explode() here?
+< 
+<   $urls = array();
+---
+>   $domains = explode("\r\n", $domainlist);
+49a54
+>   $absolute_url = (substr(reset($expire),0,4) == 'http');
+50a56,59
+>     if($absolute_url) $path = substr($path,$base_Length);
+>     if($path == '<front>') $path = '';
+>     if(substr($path,0,4) == 'http') $path = substr($path,$base_Length);
+>     if(substr($path,0,1) == '/') $path = substr($path,1);
+52c61
+<       $urls[] = $domain . '/' . $path;
+---
+>       $urls[$domain . '/' . $path] = $domain . '/' . $path;

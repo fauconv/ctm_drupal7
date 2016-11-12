@@ -1,0 +1,47 @@
+
+cache :
+-----
+boost + memcache + https://www.drupal.org/project/filecache + redis ou varnish + https://www.drupal.org/project/schrodicache
+
+seo et status :
+---------
+- https://www.drupal.org/project/seotools
+-https://www.drupal.org/project/prod_check + https://www.drupal.org/project/drd + https://www.drupal.org/project/system_status
+-https://www.drupal.org/project/linkchecker +https://www.drupal.org/project/security_review
+
+media :
+----
+-media + scald + asset + file entity
+
+update distrib :
+-----------
+-date format english
+-bugxmlsitemap : <nolink>
+-setdefault perm
+
+d8 :
+---
+-test d8 et lightning*
+
+video
+----
+https://www.drupal.org/project/video + https://www.drupal.org/project/video_embed_field_overlay + https://www.drupal.org/project/jw_player
+
+responsive :
+---------
+- https://www.drupal.org/project/picture et https://www.drupal.org/project/breakpoints + doc : https://www.drupal.org/node/1904690
+
+- adaptation srcset : http://www.stephanemartinw.com/articles/21-responsives-images-srcset-sizes-drupal + https://www.drupal.org/node/2450863
+
+
+-adaptation wysiwyg s inspirer de : https://www.drupal.org/project/media_wysiwyg_resp_img
+
+voir aussi :
+https://www.drupal.org/project/cs_adaptive_image
+https://www.drupal.org/project/ais
+https://www.drupal.org/project/rwdimages
+https://www.drupal.org/project/borealis
+
+aussi zurb fondation :
+https://www.drupal.org/project/zurb_interchange​
+ou panopoly

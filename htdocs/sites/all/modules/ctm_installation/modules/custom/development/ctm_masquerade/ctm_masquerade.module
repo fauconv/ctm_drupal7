@@ -1,0 +1,268 @@
+<?php
+/**
+ * @file
+ * The ctm masquerade module allows administrator to masquerade as one generic
+ * user for each role
+ */
+
+/**
+ * Allows a user with the right permissions to become a generic user with the selected roles
+ *
+ * @param $roles
+ *   The roles names list to switch to
+ *
+ * @return
+ *   void
+ */
+function ctm_masquerade_switch_user($form, &$form_state) {
+  global $user;
+
+  $check = $form_state['values']['check'];
+  $premade = $form_state['values']['premade'];
+  if(!user_access('administer users') && empty($_SESSION['ctm_masquerade_info'])) {
+    drupal_set_message(t('Unauthorised call to ctm_masquerade_switch_user'));
+    watchdog('ctm_masquerade', 'Unauthorised call to ctm_masquerade_switch_user from %user', array('%user' => $user->name), WATCHDOG_ERROR);
+    return drupal_goto($_SERVER['HTTP_REFERER']);
+  }
+
+  //creation user
+  if($premade == 'custom') {
+    if(!is_array($check)) {
+      drupal_set_message(t('Incorrect call to ctm_masquerade_switch_user'));
+      watchdog('ctm_masquerade', 'Incorrect call to ctm_masquerade_switch_user from %user', array('%user' => $user->name), WATCHDOG_ERROR);
+      return drupal_goto($_SERVER['HTTP_REFERER']);
+    }
+    $roles = array();
+    $username = 'ctm';
+    foreach($check as $role) {
+      if($role != "0") {
+        $roles[] = $role;
+        $username .= '_' . substr($role, 0, 3);
+      }
+    }
+    if(empty($roles)) {
+      drupal_set_message(t('Incorrect call to ctm_masquerade_switch_user (empty role)'));
+      watchdog('ctm_masquerade', 'Incorrect call to ctm_masquerade_switch_user from %user', array('%user' => $user->name), WATCHDOG_ERROR);
+      return drupal_goto($_SERVER['HTTP_REFERER']);
+    }
+    $mail = $username . '@example.com';
+  }
+  else {
+    $masquerade_users = ctm_masquerade_readFile();
+    if(empty($masquerade_users[$premade])) {
+      drupal_set_message(t('Incorrect call to ctm_masquerade_switch_user'));
+      watchdog('ctm_masquerade', 'Incorrect call to ctm_masquerade_switch_user from %user', array('%user' => $user->name), WATCHDOG_ERROR);
+      return drupal_goto($_SERVER['HTTP_REFERER']);
+    }
+    $premade_user = $masquerade_users[$premade];
+    if(empty($premade_user['username']) || empty($premade_user['email'])) {
+      drupal_set_message(t('Incorrect masquerade file format'));
+      return drupal_goto($_SERVER['HTTP_REFERER']);
+    }
+    $username = $premade_user['username'];
+    $mail = $premade_user['email'];
+    $roles = $premade_user['roles'];
+  }
+
+  //logout
+  if(!empty($_SESSION['ctm_mock_info'])) {
+    unset($_SESSION['ctm_mock_info']);
+  }
+  $orig_name = (!empty($_SESSION['ctm_masquerade_info']['orig_name']))?$_SESSION['ctm_masquerade_info']['orig_name']:$user->name;
+  ctm_masquerade_module_invoke_all('user_logout', $user);
+  drupal_session_regenerate();
+
+  //login
+  $_SESSION['ctm_masquerade_info'] = array('email' => $mail, 'roles' => $roles, 'orig_name' => $orig_name, 'username' => $username);
+  watchdog('ctm_masquerade', 'User %user now masquerading as %masq_as.', array('%user' => $orig_name, '%masq_as' => $username), WATCHDOG_INFO);
+  drupal_set_message(t('You are now masquerading as !masq_as.', array('!masq_as' => $username)));
+  user_external_login_register($username, 'ctm_masquerade');
+  $user = user_external_load($username);
+  $user->mail = $mail;
+  $user->roles = array();
+  foreach($roles as $role) {
+    $roleID = user_role_load_by_name($role);
+    if($roleID) {
+      $user->roles[$roleID->rid] = $roleID->name;
+    }
+  }
+  user_save($user);
+  drupal_goto(request_uri());
+}
+
+/**
+ * Fonction module_invoke_all special POUR ASSURER LA COMPATIBILITE avec
+ * certain module que l'on voudrait supprimer d'ici comme par exemple
+ * des hook_user_logout de module le login externe (LDAP, OPENAM)
+ */
+function ctm_masquerade_module_invoke_all($user) {
+  $return = array();
+  foreach(module_implements('user_logout') as $module) {
+    // uncomment below line to dont call a specific hook_user_logout
+    //if($module == 'my_module')
+    //  continue;
+    $function = $module . '_user_logout';
+    if(function_exists($function)) {
+      $result = $function($user);
+      if(isset($result) && is_array($result)) {
+        $return = array_merge_recursive($return, $result);
+      }
+      elseif(isset($result)) {
+        $return[] = $result;
+      }
+    }
+  }
+}
+
+/**
+ * Function for a masquerading user to switch back to the previous user.
+ */
+function ctm_masquerade_switch_back($form, &$form_state) {
+  global $user;
+  if(empty($_SESSION['ctm_masquerade_info'])) {
+    drupal_set_message(t('Unauthorised call to ctm_masquerade_switch_back'));
+    watchdog('ctm_masquerade', 'Unauthorised call to ctm_masquerade_switch_user from %user', array('%user' => $user->name), WATCHDOG_ERROR);
+    return drupal_goto($_SERVER['HTTP_REFERER']);
+  }
+
+  //logout
+  watchdog('ctm_masquerade', 'User %user switch back to himself.', array('%user' => $user->name), WATCHDOG_INFO);
+  ctm_masquerade_module_invoke_all($user);
+  session_destroy();
+  drupal_goto(request_uri());
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function ctm_masquerade_block_info() {
+  $blocks = array();
+  $blocks['ctm_masquerade'] = array(
+    'info' => t('CTM Masquerade'),
+    'cache' => DRUPAL_NO_CACHE,
+  );
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function ctm_masquerade_block_view($delta = '') {
+  $block = array();
+  switch($delta) {
+    case 'ctm_masquerade':
+      global $user;
+      if(user_access('administer users') || !empty($_SESSION['ctm_masquerade_info'])) {
+        $block['subject'] = t('CTM Masquerade');
+        $block['content'] = drupal_get_form('ctm_masquerade_form');
+      }
+      break;
+  }
+  return $block;
+}
+
+/**
+ * Masquerade block form.
+ */
+function ctm_masquerade_form() {
+  global $user;
+  if(!user_access('administer users') && empty($_SESSION['ctm_masquerade_info']))
+    return array();
+  $form = array();
+  $roles = ctm_installation_user_roles();
+  $check = array();
+  $admin_rid = variable_get('user_admin_role');
+  foreach($roles as $rolename => $rid) {
+    if($rid == $admin_rid)
+      continue; // on ne se masquerade pas en admin
+    $check[$rolename] = $rolename;
+  }
+  $users = ctm_masquerade_readFile();
+  foreach($users as $key => $premade) {
+    $radios[$key] = $premade['username'];
+  }
+  $radios['custom'] = 'custom';
+  $form['premade'] = array(
+    '#type' => 'radios',
+    '#options' => $radios,
+    '#default_value' => 'custom',
+  );
+  $form['list_role'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Roles'),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="premade"]' => array('value' => 'custom'),
+      ),
+    ),
+  );
+  $form['list_role']['check'] = array(
+    '#type' => 'checkboxes',
+    '#options' => $check,
+  );
+  $form['masquerade'] = array(
+    '#type' => 'submit',
+    '#name' => 'masquerade',
+    '#value' => t('Masquerade'),
+    '#submit' => array('ctm_masquerade_switch_user'),
+  );
+  if(!empty($_SESSION['ctm_masquerade_info'])) {
+    $form['switchback'] = array(
+      '#type' => 'submit',
+      '#name' => 'back',
+      '#value' => t('Switch Back'),
+      '#submit' => array('ctm_masquerade_switch_back'),
+    );
+  }
+  return $form;
+}
+
+/**
+ * helper fonction pour lire le fichier masquerade du site
+ */
+function ctm_masquerade_readFile() {
+  static $cache = array();
+
+  if(!empty($cache)) {
+    return $cache;
+  }
+  $file = dirname(DRUPAL_ROOT) . '/config/masquerade-' . basename(conf_path()) . '.xml';
+  if(!file_exists($file)) {
+    return array();
+  }
+  if(!($xml = simplexml_load_file($file))) {
+    drupal_set_message(t('Le fichier Masquerade est mal formaté', 'error'));
+    return array();
+  }
+  foreach($xml->USER as $user) {
+    $user_cache = array();
+    if((string) $user->USERNAME == "") {
+      drupal_set_message(t('Le fichier Masquerade est mal formaté : pas de noeud USERNAME', 'error'));
+      return array();
+    }
+    if((string) $user->EMAIL == "") {
+      drupal_set_message(t('Le fichier Masquerade est mal formaté : pas de noeud EMAIL', 'error'));
+      return array();
+    }
+    $user_cache['username'] = (string) $user->USERNAME;
+    $user_cache['email'] = (string) $user->EMAIL;
+    if(!isset($user->FIELDS)) {
+      drupal_set_message(t('Le fichier Masquerade est mal formaté : pas de noeud FIELDS', 'error'));
+      return array();
+    }
+    $user_cache['fields'] = array();
+    foreach($user->FIELDS->children() as $name => $value) {
+      $user_cache['fields'][$name] = (string) $value;
+    }
+    if(!isset($user->ROLES)) {
+      drupal_set_message(t('Le fichier Masquerade est mal formaté : pas de noeud FIELDS', 'error'));
+      return array();
+    }
+    $user_cache['roles'] = array();
+    foreach($user->ROLES->children() as $value) {
+      $user_cache['roles'][(string) $value] = (string) $value;
+    }
+    $cache[] = $user_cache;
+  }
+  return $cache;
+}

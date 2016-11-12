@@ -1,0 +1,13 @@
+diff --git a/xautoload.module b/xautoload.module
+index 4ebbcf3..9934023 100644
+--- a/xautoload.module
++++ b/xautoload.module
+@@ -160,7 +160,7 @@ function _xautoload_register_drupal() {
+ 
+   // Activate a cache, if available and enabled.
+   $cache_types = $services->system->variableGet(XAUTOLOAD_VARNAME_CACHE_TYPES, array());
+-  if (!empty($cache_types['apcu_q'])) {
++  if (!empty($cache_types['apcu_q']) && function_exists('apcu_fetch')) {
+     $cached_loader = ApcuQueuedCachedClassLoader::create($decorated, $services->cacheManager);
+   }
+   elseif (!empty($cache_types['apc']) && extension_loaded('apc') && function_exists('apc_store')) {

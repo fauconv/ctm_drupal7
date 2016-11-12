@@ -1,0 +1,7 @@
+name = CTM extended backoffice
+description = Add full functionnality to back office
+core = 7.x
+package = CTM
+
+dependencies[] = autoupload
+dependencies[] = epsacrop

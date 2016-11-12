@@ -1,0 +1,26 @@
+diff --git a/eim.module b/eim.module
+index 9f4512e..253f72b 100644
+--- a/eim.module
++++ b/eim.module
+@@ -79,6 +79,18 @@ function eim_field_widget_image_image_form_alter(&$element, &$form_state, $conte
+ }
+ 
+ /**
++ * Implements hook_field_widget_WIDGET_TYPE_form_alter().
++ *
++ * for module multiupload
++ * Add a #process callback to the imagefield widget element so we
++ * can perform alters.
++ * See http://drupal.org/node/887424
++ * 
++ */
++function eim_field_widget_image_miw_form_alter(&$element, &$form_state, $context) {
++  foreach (element_children($element) as $delta){
++    $element[$delta]['#process'][] = 'eim_imagefield_widget_process';
++  }
++}
++
++/**
+  * Element #process callback function.
+  *
+  * Action to

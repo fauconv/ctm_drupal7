@@ -1,0 +1,8 @@
+name = CTM Multi-language by field
+description = Configure Drupal for multi language by field, english by default, and admin in english (no translation of label)
+core = 7.x
+package = CTM
+
+dependencies[] = entity_translation_i18n_menu
+dependencies[] = title
+dependencies[] = translation_table

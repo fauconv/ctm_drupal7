@@ -1,0 +1,126 @@
+<?php
+
+/**
+ * @file Expose ourselves to Page manager, in a good way.
+ */
+
+/**
+ * Implements hook_ctools_plugin_directory() to let the system know
+ * we implement page manager task handlers.
+ */
+function page_manager_views_ctools_plugin_directory($module, $plugin) {
+  // Safety: go away if CTools is not at an appropriate version.
+  if(!module_invoke('ctools', 'api_version', '2.0-alpha')) {
+    return;
+  }
+  if($module == 'page_manager') {
+    return 'plugins/' . $plugin;
+  }
+}
+
+// --------------------------------------------------------------------------
+// Forms
+
+/**
+ * General notes about forms: The handler is automatically cached by the form
+ * wizard, so anything we store on $form_state['handler'] anywhere will get
+ * saved and appear on the next form. The cache is a 'working' cache and
+ * if the user hits cancel on any page of the multi-page wizard, all
+ * changes since the last 'update/finish' click will be flushed away.
+ */
+
+/**
+ * General settings for the panel
+ */
+function page_manager_views_redirect_context_edit_settings($form, &$form_state) {
+  $conf = $form_state['handler']->conf;
+  $form['conf']['title'] = array(
+      '#type' => 'textfield',
+      '#default_value' => $conf['title'],
+      '#title' => t('Administrative title'),
+      '#description' => t('Administrative title of this variant.'),
+  );
+
+  module_load_include('module', 'views');
+
+  // Get options for the view select field.
+  $views = views_get_all_views();
+  $select_options = array();
+  foreach($views as $view) {
+    if(views_view_is_enabled($view)) {
+      // #1507632 It has been reported that some views have empty human names,
+      // so we add a condition and use the view name if human is unavailable.
+      $select_options[$view->name] = empty($view->human_name)?$view->name:$view->human_name;
+    }
+  }
+  $form['conf']['view'] = array(
+      '#ajax' => array(
+          'callback' => 'page_manager_views_associated_display_handler_views_callback',
+          'wrapper' => 'replace-td-views-display-field',
+      ),
+      '#default_value' => isset($conf['view'])?$conf['view']:FALSE,
+      '#description' => t('Select which view you would like to display the associated content.'),
+      '#options' => $select_options,
+      '#title' => t('View'),
+      '#type' => 'select',
+  );
+
+  // Retrieve the views displays to supply as options.
+  if(isset($form_state['values']['view'])) {
+    $view = $views[$form_state['values']['view']];
+  }
+  elseif(isset($conf['view'])) {
+    $view = $views[$conf['view']];
+  }
+  else {
+    // If the view hasn't been submitted and it's not previously saved then
+    // fetch it as the first view field option.
+    reset($select_options);
+    $view = $views[key($select_options)];
+  }
+
+  $select_options = array();
+  // Get options for the view's display field.
+  foreach($view->display as $key => $display) {
+    $select_options[$key] = $display->display_title;
+  }
+
+  $form['conf']['display_view'] = array(
+      '#default_value' => isset($conf['display_view'])?$conf['display_view']:'default',
+      '#options' => $select_options,
+      '#prefix' => '<div id="replace-td-views-display-field">',
+      '#suffix' => '</div>',
+      '#title' => t("View's display"),
+      '#type' => 'select',
+  );
+
+  $form['conf']['args'] = array(
+      '#type' => 'textfield',
+      '#default_value' => isset($conf['args'])?$conf['args']:'',
+      '#title' => t("View's arguments from context"),
+      '#description' => t("Use context tokens separeted by '/' in the good order."),
+  );
+
+  return $form;
+}
+
+/**
+ * Submit handler for general settings form.
+ */
+function page_manager_views_redirect_context_edit_settings_submit(&$form, &$form_state) {
+  $form_state['handler']->conf['title'] = $form_state['values']['title'];
+  $form_state['handler']->conf['args'] = $form_state['values']['args'];
+  $form_state['handler']->conf['view'] = $form_state['values']['view'];
+  $form_state['handler']->conf['display_view'] = $form_state['values']['display_view'];
+}
+
+/**
+ * Ajax callback; return just the term display sub-form.
+ *
+ * @return renderable array
+ */
+function page_manager_views_associated_display_handler_views_callback($form, $form_state) {
+  if(isset($form['conf']['display_view'])) {
+    return $form['conf']['display_view'];
+  }
+}

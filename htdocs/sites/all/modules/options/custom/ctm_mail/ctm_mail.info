@@ -1,0 +1,8 @@
+name = CTM mail
+description = To send email from the website
+core = 7.x
+package = CTM
+
+dependencies[] = mailsystem
+dependencies[] = mimemail
+dependencies[] = phpmailer

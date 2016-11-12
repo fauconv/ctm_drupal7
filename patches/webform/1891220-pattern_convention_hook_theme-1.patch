@@ -1,0 +1,20 @@
+diff --git a/webform.module b/webform.module
+index 2559527..2d292a7 100644
+--- a/webform.module
++++ b/webform.module
+@@ -763,7 +763,6 @@ function webform_theme() {
+     'webform_form' => array(
+       'render element' => 'form',
+       'template' => 'templates/webform-form',
+-      'pattern' => 'webform_form_[0-9]+',
+     ),
+     'webform_confirmation' => array(
+       'variables' => array('node' => NULL, 'sid' => NULL),
+@@ -2648,6 +2647,7 @@ function template_preprocess_webform_form(&$vars) {
+   elseif (isset($vars['form']['submission']['#value'])) {
+     $vars['nid'] = $vars['form']['submission']['#value']->nid;
+   }
++  $vars['theme_hook_suggestions'][] = 'webform_form__' . $vars['nid'];
+ }
+
+ /**

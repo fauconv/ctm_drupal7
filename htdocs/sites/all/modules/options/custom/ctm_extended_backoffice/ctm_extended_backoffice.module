@@ -1,0 +1,38 @@
+<?php
+
+/**
+ * implements hook_installation_config_file
+ * Pour ajouter des fonctions configurations a l'installation
+ * Les fonctions doivent etre de la forme : ctm_installation_config_*[_after]
+ */
+function ctm_extended_backoffice_installation_config() {
+  return array('ctm_installation');
+}
+
+
+/**
+ * Implements hook_element_info_alter.
+ * modifier le lien epsacrop
+ *
+ * @access public
+ * @param array &$type
+ * @return void
+ */
+function ctm_extended_backoffice_element_info_alter(&$type) {
+  $type['managed_file']['#process'][] = '_ctm_extended_backoffice_element_process';
+}
+
+/**
+ * Remplace le lien html de epsacrop par un bouton sur le node form
+ * @param type $form
+ * @param type $form_state
+ */
+function _ctm_extended_backoffice_element_process($element, $form_state, $form) {
+  if (!empty($element['epsacrop']['#markup'])) {
+    $markup = $element['epsacrop']['#markup'];
+    preg_match('/javascript:([^"]+)"/', $markup, $match);
+    $element['epsacrop']['#markup'] = '<input type="button" onclick="javascript:' . $match[1] . '" class="form-submit" id="ctm_epsacrop" value="' . t('Crop') . '" />';
+  }
+
+  return $element;
+}

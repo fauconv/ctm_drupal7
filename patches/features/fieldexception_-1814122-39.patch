@@ -1,0 +1,75 @@
+Index: features.api.php
+===================================================================
+--- a/features.api.php
++++ b/features.api.php
+@@ -48,6 +48,9 @@
+  *
+  *   'alter_hook': What the name of the alter hook for this component is.
+  *    Do not include the '_alter' part. Defaults to 'default_hook'.
++ *
++ *   'weight': An optional weight for this component. Use this to set the order
++ *   in which operations on components will run. Defaults to 0.
+  */
+ function hook_features_api() {
+   return array(
+@@ -56,6 +59,7 @@
+       'default_file' => FEATURES_DEFAULTS_INCLUDED,
+       'feature_source' => TRUE,
+       'file' => drupal_get_path('module', 'mycomponent') . '/mycomponent.features.inc',
++      'weight' => 0,
+     ),
+   );
+ }
+Index: features.export.inc
+===================================================================
+--- a/features.export.inc
++++ b/features.export.inc
+@@ -913,7 +913,7 @@
+   foreach ($features as $feature) {
+     $cache[$feature] = isset($cache[$feature]) ? $cache[$feature] : array();
+     if (module_exists($feature) && !empty($all_features[$feature]->components)) {
+-      foreach (array_intersect($all_features[$feature]->components, $components) as $component) {
++      foreach(array_intersect($components, $all_features[$feature]->components) as $component) {
+         if (!isset($cache[$feature][$component])) {
+           $normal = features_get_signature('normal', $feature, $component, $reset);
+           $default = features_get_signature('default', $feature, $component, $reset);
+Index: features.module
+===================================================================
+--- a/features.module
++++ b/features.module
+@@ -553,6 +553,9 @@
+     else {
+       $components = module_invoke_all('features_api');
+       drupal_alter('features_api', $components);
++      // Sort component types by weight.
++      ksort($components);
++      uasort($components, 'drupal_sort_weight');
+       cache_set('features_api', $components, 'cache_features');
+     }
+ 
+@@ -972,6 +975,13 @@
+       }
+     }
+   }
++  else {
++    //sort components of items in orders of weight
++    $full_components = array_keys(features_get_components());
++    foreach($items as $feature => $components) {
++      $items[$feature] = array_intersect($full_components, $components);
++    }
++  }
+ 
+   // Invoke global pre restore hook.
+   module_invoke_all('features_pre_restore', $op, $items);
+Index: includes/features.features.inc
+===================================================================
+--- a/includes/features.features.inc
++++ b/includes/features.features.inc
+@@ -9,6 +9,7 @@
+       'name' => 'Dependencies',
+       'feature_source' => TRUE,
+       'duplicates' => FEATURES_DUPLICATES_ALLOWED,
++      'weight' => -10,
+     ),
+   );
+ }

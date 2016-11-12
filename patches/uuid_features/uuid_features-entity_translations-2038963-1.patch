@@ -1,0 +1,74 @@
+diff --git a/includes/uuid_node.features.inc b/includes/uuid_node.features.inc
+index 17f931b..b640228 100755
+--- a/includes/uuid_node.features.inc
++++ b/includes/uuid_node.features.inc
+@@ -130,12 +130,12 @@ function uuid_node_features_rebuild($module) {
+       // Find the matching UUID, with a fresh cache.
+       $nids = entity_get_id_by_uuid('node', array($node->uuid));
+       if (isset($nids[$node->uuid])) {
+-          $nid = array_key_exists($node->uuid, $nids) ? $nids[$node->uuid] : FALSE;
+-          $existing = node_load($nid, NULL, TRUE);
+-          if (!empty($existing)) {
+-            $node->nid = $existing->nid;
+-            $node->vid = $existing->vid;
+-          }
++        $nid = array_key_exists($node->uuid, $nids) ? $nids[$node->uuid] : FALSE;
++        $existing = node_load($nid, NULL, TRUE);
++        if (!empty($existing)) {
++          $node->nid = $existing->nid;
++          $node->vid = $existing->vid;
++        }
+       }
+ 
+       // The hook_alter signature is:
+@@ -144,7 +144,7 @@ function uuid_node_features_rebuild($module) {
+ 
+       $node = node_submit($node);
+       uuid_features_file_field_import($node, 'node');
+-      node_save($node);
++      entity_uuid_save('node', $node);
+     }
+   }
+ }
+diff --git a/includes/uuid_term.features.inc b/includes/uuid_term.features.inc
+old mode 100644
+new mode 100755
+index 40acb13..1ec3940
+--- a/includes/uuid_term.features.inc
++++ b/includes/uuid_term.features.inc
+@@ -152,7 +152,7 @@ function uuid_term_features_rebuild($module) {
+           $term->uuid = $data['uuid'];
+           $term->vid = $voc->vid;
+           $term->name = $data['name'];
+-          taxonomy_term_save($term);
++          entity_uuid_save('taxonomy_term', $term);
+         }
+       }
+     }
+diff --git a/uuid_features.module b/uuid_features.module
+old mode 100644
+new mode 100755
+index ca6a94c..2d3fff0
+--- a/uuid_features.module
++++ b/uuid_features.module
+@@ -473,3 +473,20 @@ function _uuid_features_file_field_import_file(&$file) {
+ 
+   return TRUE;
+ }
++
++/**
++ * Implements hook_entity_uuid_presave().
++ */
++function uuid_features_entity_uuid_presave(&$entity, $entity_type) {
++  // UUID exports entities as arrays, therefore we need to cast the translations
++  // array back into an object.
++  if ($entity_type == 'node' || $entity_type == 'taxonomy_term') {
++    $entity_info = entity_get_info($entity_type);
++    if (isset($entity_info['entity keys']) && isset($entity_info['entity keys']['translations'])) {
++      $key = $entity_info['entity keys']['translations'];
++      if (isset($entity->{$key})) {
++        $entity->{$key} = (object) $entity->{$key};
++      }
++    }
++  }
++}

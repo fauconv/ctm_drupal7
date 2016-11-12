@@ -1,0 +1,14 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the ctm_internet installation profile
+ * Vérifie que l on a bien l arbo DGSI
+ */
+
+/**
+ * Implements hook_install().
+ */
+function ctm_internet_install() {
+  ctm_installation_config_all(CTM_INTERNET,'install');
+}

@@ -1,0 +1,114 @@
+diff --git a/publishcontent.admin.inc b/publishcontent.admin.inc
+--- a/publishcontent.admin.inc
++++ b/publishcontent.admin.inc
+@@ -22,6 +22,21 @@
+       PUBLISHCONTENT_METHOD_TABS => t('Tabs.'),
+     ),
+   );
+-
++  $form['publishcontent_publish_on_create'] = array(
++    '#type' => 'checkbox',
++    '#title' => t('Add publish button on node create page.'),
++    '#description' => t('If checked, add the publish button on node create page. If not checked node must be saved before publishing like with "Tabs" method'),
++    '#default_value' => variable_get('publishcontent_publish_on_create', FALSE),
++    '#states' => array(
++      // Only show this field when the value of publishcontent_method is PUBLISHCONTENT_METHOD_BUTTON
++      'invisible' => array(
++        array(
++          array(':input[name="publishcontent_method"]' => array('value' => PUBLISHCONTENT_METHOD_NONE)),
++          array(':input[name="publishcontent_method"]' => array('value' => PUBLISHCONTENT_METHOD_ACTION_LINKS)),
++          array(':input[name="publishcontent_method"]' => array('value' => PUBLISHCONTENT_METHOD_TABS)),
++        )
++      ),
++    ),
++  );
+   return system_settings_form($form);
+ }
+diff --git a/publishcontent.module b/publishcontent.module
+--- a/publishcontent.module
++++ b/publishcontent.module
+@@ -375,7 +375,8 @@
+ function _publishcontent_configure_publish_button(&$form, &$form_state) {
+   $node = $form['#node'];
+ 
+-  if (empty($node->nid) || empty($form['actions'])) {
++  if(!variable_get('publishcontent_publish_on_create', FALSE) &&
++    (empty($node->nid) || empty($form['actions']))) {
+     // Don't include the publish button on node add forms.
+     return;
+   }
+@@ -416,6 +417,7 @@
+     '#value' => t('Publish'),
+     '#weight' => '30',
+     '#submit' => array('_publishcontent_publish_node'),
++    '#validate' => array('_publishcontent_publish_node_validate'),
+   );
+ }
+ 
+@@ -443,6 +445,23 @@
+ }
+ 
+ /**
++ * Validate handler to check again the right of publishing
++ * In mode button, for un og group content, if the user change the
++ * group of the content it is possible his publishing right has changed. So
++ * we have to check it at validation step.
++ * In also true if the button is display on the create node page when we dont
++ * know the group of the node.
++ * @param type $form
++ * @param type $form_state
++ */
++function _publishcontent_publish_node_validate($form, &$form_state) {
++  $node = $form['#node'];
++  if(!publishcontent_publish_access($node)) {
++    form_set_error('', 'You do not have right to publish this content');
++  }
++}
++
++/**
+  * Submit handler to unpublish the node.
+  */
+ function _publishcontent_unpublish_node($form, &$form_state) {
+@@ -522,11 +541,15 @@
+  */
+ function og_publishcontent_publish_access($node, $account) {
+   $access = FALSE;
+-
++  // if the node has at least one group
++  //check if the user has the right to publish in at least one common group
++  $groups_count = 0;
+   foreach (og_get_entity_groups('node', $node) as $entity_type => $og_memberships) {
+     foreach ($og_memberships as $entity_id) {
++      $groups_count++;
+       $group_access = !$node->status &&
+-        (og_user_access($entity_type, $entity_id, 'administer nodes', $account)
++        (og_user_access($entity_type, $entity_id, 'administer group', $account)
++        || user_access('administer node', $account)
+         || og_user_access($entity_type, $entity_id, 'publish any content', $account)
+         || (og_user_access($entity_type, $entity_id, 'publish own content', $account) && $account->uid == $node->uid)
+         || (og_user_access($entity_type, $entity_id, 'publish editable content', $account) && node_access('update', $node))
+@@ -541,6 +564,24 @@
+     }
+   }
+ 
++  // if it is a new content where publish button is allowed on create page
++  // we have to check if user has right to publish in at least one of his group
++  // for this content type
++  if(empty($node->nid) && $groups_count == 0 && variable_get('publishcontent_publish_on_create',
++      FALSE)) {
++    $groups = og_get_groups_by_user($account);
++    if(!empty($groups)) {
++      foreach($groups as $entity_type => $og_memberships) {
++        foreach($og_memberships as $entity_id) {
++          $group_access = og_user_access($entity_type, $entity_id, 'administer group', $account) || user_access('administer node', $account) || og_user_access($entity_type, $entity_id, 'publish any content', $account) || og_user_access($entity_type, $entity_id, 'publish own content', $account) || og_user_access($entity_type, $entity_id, 'publish editable content', $account) || og_user_access($entity_type, $entity_id, 'publish own ' . check_plain($node->type) . ' content', $account) || og_user_access($entity_type, $entity_id, 'publish any ' . check_plain($node->type) . ' content', $account) || og_user_access($entity_type, $entity_id, 'publish editable ' . check_plain($node->type) . ' content', $account);
++
++          if($group_access) {
++            $access = TRUE;
++          }
++        }
++      }
++    }
++  }
+   return $access ? PUBLISHCONTENT_ACCESS_ALLOW : PUBLISHCONTENT_ACCESS_IGNORE;
+ }
+ 

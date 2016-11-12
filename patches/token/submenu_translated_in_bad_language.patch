@@ -1,0 +1,104 @@
+diff wB token.module token.module
+1038c1038
+< function token_menu_link_load($mlid) {
+---
+> function token_menu_link_load($mlid, $language_code = LANGUAGE_NONE) {
+1039a1040
+>   global $language;
+1045c1046,1047
+<   if (!isset($cache[$mlid])) {
+---
+>   if($language_code == NULL) $language_code = LANGUAGE_NONE;
+>   if (!isset($cache[$language_code][$mlid])) {
+1047a1050,1054
+>       $old = $language;
+>       if($language_code != LANGUAGE_NONE) {
+>         $list = language_list();
+>         $language = $list[$language_code];
+>       }
+1048a1056
+>       $language = $old;
+1050c1058
+<     $cache[$mlid] = $item;
+---
+>     $cache[$language_code][$mlid] = $item;
+1052,1053c1060
+< 
+<   return $cache[$mlid];
+---
+>   return $cache[$language_code][$mlid];
+1219c1226
+< function token_menu_link_load_all_parents($mlid) {
+---
+> function token_menu_link_load_all_parents($mlid, $language_code = LANGUAGE_NONE) {
+1226,1227c1233,1234
+<   if (!isset($cache[$mlid])) {
+<     $cache[$mlid] = array();
+---
+> if (!isset($cache[$language_code][$mlid])) {
+>     $cache[$language_code][$mlid] = array();
+1229,1230c1236,1237
+<     while ($plid && $parent = token_menu_link_load($plid)) {
+<       $cache[$mlid] = array($plid => $parent['title']) + $cache[$mlid];
+---
+>     while ($plid && $parent = token_menu_link_load($plid, $language_code)) {
+>       $cache[$language_code][$mlid] = array($plid => $parent['title']) + $cache[$language_code][$mlid];
+1235c1242
+<   return $cache[$mlid];
+---
+>   return $cache[$language_code][$mlid];
+1271c1278
+< function token_node_menu_link_load($node) {
+---
+> function token_node_menu_link_load($node, $language_code = LANGUAGE_NONE) {
+1273,1274c1280,1281
+< 
+<   if (!isset($cache[$node->nid])) {
+---
+> if($language_code == NULL) $language_code = LANGUAGE_NONE;
+>   if (!isset($cache[$language_code][$node->nid])) {
+1289c1296
+<     $cache[$node->nid] = $mlid;
+---
+>     $cache[$language_code][$node->nid] = $mlid;
+1292c1299
+<   return $cache[$node->nid] ? token_menu_link_load($cache[$node->nid]) : FALSE;
+---
+>   return $cache[$language_code][$node->nid] ? token_menu_link_load($cache[$language_code][$node->nid], $language_code) : FALSE;
+diff wB token.tokens.inc token.tokens.inc
+612c612
+<       $link = token_menu_link_load($link['mlid']);
+---
+>       $link = token_menu_link_load($link['mlid'], $language_code);
+627c627
+<           if (!empty($link['plid']) && $parent = token_menu_link_load($link['plid'])) {
+---
+>           if (!empty($link['plid']) && $parent = token_menu_link_load($link['plid'], $language_code)) {
+632c632
+<           if ($parents = token_menu_link_load_all_parents($link['mlid'])) {
+---
+>           if ($parents = token_menu_link_load_all_parents($link['mlid'], $language_code)) {
+637c637
+<           if (!empty($link['p1']) && $link['p1'] != $link['mlid'] && $root = token_menu_link_load($link['p1'])) {
+---
+>           if (!empty($link['p1']) && $link['p1'] != $link['mlid'] && $root = token_menu_link_load($link['p1'], $language_code)) {
+645c645
+<     if (!empty($link['plid']) && ($source_tokens = token_find_with_prefix($tokens, 'parent')) && $parent = token_menu_link_load($link['plid'])) {
+---
+>     if (!empty($link['plid']) && ($source_tokens = token_find_with_prefix($tokens, 'parent')) && $parent = token_menu_link_load($link['plid'], $language_code)) {
+650c650
+<       if ($parents = token_menu_link_load_all_parents($link['mlid'])) {
+---
+>       if ($parents = token_menu_link_load_all_parents($link['mlid'], $language_code)) {
+654c654
+<     if (!empty($link['p1']) && $link['p1'] != $link['mlid'] && ($root_tokens = token_find_with_prefix($tokens, 'root')) && $root = token_menu_link_load($link['p1'])) {
+---
+>     if (!empty($link['p1']) && $link['p1'] != $link['mlid'] && ($root_tokens = token_find_with_prefix($tokens, 'root')) && $root = token_menu_link_load($link['p1'], $language_code)) {
+1107c1107
+<           if ($link = token_node_menu_link_load($node)) {
+---
+>           if ($link = token_node_menu_link_load($node, $language_code)) {
+1115c1115
+<         if ($link = token_node_menu_link_load($node)) {
+---
+>         if ($link = token_node_menu_link_load($node, $language_code)) {

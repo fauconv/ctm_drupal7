@@ -1,0 +1,139 @@
+<?php
+
+/**
+ * Implements hook_field_formatter_info().
+ * Ajout d'un formatter pour les blob
+ */
+function field_from_theme_field_formatter_info() {
+  return array(
+      'field_from_theme' => array(
+          'label' => 'Data from theme',
+          'description' => '',
+          'field types' => array('blob', 'blob_long'),
+      ),
+  );
+}
+
+/**
+ * Implements hook_field_widget_info().
+ * Ajout d'un widget pour les blob
+ */
+function field_from_theme_field_widget_info() {
+  return array(
+      'widget_from_theme' => array(
+          'label' => 'Data from theme',
+          'field types' => array('blob', 'blob_long'),
+      ),
+  );
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ * We expose data in template for fft function
+ */
+function field_from_theme_field_formatter_view($object_type, $object, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+  switch ($display['type']) {
+    case 'field_from_theme':
+      foreach ($items as $delta => $item) {
+        $element[$delta]['#data'] = unserialize($item['value']);
+        $element[$delta]['#markup'] = '';
+      }
+      break;
+  }
+  return $element;
+}
+
+/**
+ * callback de validation du field
+ * @param type $element
+ * @param type $form_state
+ * @param type $form
+ */
+function field_from_theme_validate($element, &$form_state, $form) {
+  $field_name = $element['#field_name'];
+  if (isset($form_state['values'][$field_name])) {
+    $values = $form_state['values'][$field_name];
+    $form_state['values'][$field_name] = array();
+    foreach ($values as $lang => $values2) {
+      $form_state['values'][$field_name][$lang] = array();
+      foreach ($values2 as $index => $value) {
+        $form_state['values'][$field_name][$lang][$index] = array('value' => serialize($value));
+      }
+    }
+  } else {
+    $form_state['values'][$field_name] = array();
+  }
+}
+
+/**
+ * Implements hook_field_widget_form().
+ */
+function field_from_theme_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+
+  $element += array(
+      '#type' => 'fieldset',
+      '#collapsible' => FALSE,
+      '#tree' => TRUE,
+      '#element_validate' => array('field_from_theme_validate'),
+  );
+  
+  // no template choose
+  if (empty($form_state['build_info']['args'][0]->template_picker)) {
+    return array();
+  }
+
+  //Looks for the file to parse it
+  $theme_default = variable_get('theme_default', 'bartik');
+  $theme_path = drupal_get_path('theme', $theme_default);
+  $regex = '`' . $form_state['build_info']['args'][0]->template_picker . '.tpl.php' . '$`';
+  $files = file_scan_directory(DRUPAL_ROOT . '/' . $theme_path, $regex);
+  
+  // get template content
+  $content = null;
+  if (!empty($files) && is_array($files)) {
+    $oFile = array_pop($files);
+    $tpl = $oFile->uri;
+    $content = file_get_contents($tpl);
+  }
+  
+  // nothing to replace
+  if (!preg_match_all('/fft\( *[\'"]#(.*)#[\'"] *,/', $content, $matches)) {
+    return array();
+  }
+  
+  // create form field
+  $default_values = array();
+  if (!empty($items[$delta]['value'])) {
+    $default_values = unserialize($items[$delta]['value']);
+  }
+  foreach ($matches[1] as $match) {
+    $element[$match] = array(
+        '#type' => 'textarea',
+        '#title' => $match,
+        '#default_value' => !empty($default_values[$match]) ? $default_values[$match] : $match,
+        '#rows' => 3,
+    );
+  }
+
+  return $element;
+}
+
+/**
+ * Translation function for static field
+ * @param string $tag
+ *  the tag name starting with # and ending with #
+ * @param array $content
+ *  the array contening a key named $field with the blob field
+ * @param string $field
+ *  the key of the $content array contenign the blob
+ * @return string
+ *  the string to display
+ */
+function fft($tag, $content, $field) {
+  $tag = substr($tag, 1, -1);
+  if (isset($content[$field][0]['#data'][$tag])) {
+    return $content[$field][0]['#data'][$tag];
+  }
+  return $tag;
+}

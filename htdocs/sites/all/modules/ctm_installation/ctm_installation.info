@@ -1,0 +1,111 @@
+name = "CTM Installation"
+description = "Installe et reinitialise les partie commune du socle Etat (master) + Affiche la version du site dans le tableau de bord d'administration si le fichier release.php existe"
+core = 7.x
+php = "5.2.4"
+version = "7.x-2.10"
+package = "CTM"
+configure = admin/config/custom/installation
+
+; Activation des modules du core
+;le module taxonomy doit etre le premier
+dependencies[] = node
+dependencies[] = taxonomy
+dependencies[] = block
+dependencies[] = image
+dependencies[] = list
+dependencies[] = menu
+dependencies[] = number
+dependencies[] = options
+dependencies[] = path
+dependencies[] = file
+dependencies[] = locale
+dependencies[] = filter
+dependencies[] = php
+
+; Activation du modules lies aux vues
+dependencies[] = views
+dependencies[] = ctools
+dependencies[] = view_unpublished
+dependencies[] = page_manager_views
+
+
+; Activation des modules lies au menu
+dependencies[] = admin_menu
+dependencies[] = admin_menu_toolbar
+dependencies[] = special_menu_items
+dependencies[] = menu_attributes
+dependencies[] = admin_views
+dependencies[] = menu_block
+dependencies[] = ctools_automodal
+
+; Activation des modules lies aux droits d acces
+dependencies[] = menu_admin_per_menu
+dependencies[] = actions_permissions
+dependencies[] = vppr
+dependencies[] = role_delegation
+dependencies[] = administerusersbyrole
+
+; Activation des champs supplementaires
+dependencies[] = email
+dependencies[] = text
+dependencies[] = link
+dependencies[] = field_group
+dependencies[] = date
+dependencies[] = date_popup
+dependencies[] = entityreference
+dependencies[] = field_from_theme
+dependencies[] = weight
+
+; Activation des modules lies a la gestion des urls et du breadcrumb
+dependencies[] = token
+dependencies[] = pathauto
+dependencies[] = redirect
+dependencies[] = transliteration
+dependencies[] = globalredirect
+dependencies[] = page_manager
+dependencies[] = menu_position
+
+;edition
+dependencies[] = publishcontent
+dependencies[] = content_type_extras
+dependencies[] = ckeditor
+dependencies[] = imce_crop
+dependencies[] = imce_mkdir
+dependencies[] = better_formats
+dependencies[] = override_node_options
+dependencies[] = pathologic
+dependencies[] = linkit
+dependencies[] = entity_menu_links
+dependencies[] = diff
+dependencies[] = scheduler
+dependencies[] = pagepreview
+dependencies[] = image_resize_filter
+dependencies[] = eim
+dependencies[] = smart_trim
+
+;taxonomy
+dependencies[] = taxonomy_manager
+dependencies[] = shs
+
+;autre
+dependencies[] = module_filter
+dependencies[] = libraries
+dependencies[] = ultimate_cron
+
+;features
+dependencies[] = uuid_features
+dependencies[] = strongarm
+
+;cache
+dependencies[] = rules
+dependencies[] = xautoload
+dependencies[] = cache_actions
+dependencies[] = db_maintenance
+dependencies[] = entitycache
+dependencies[] = ecl
+dependencies[] = display_cache
+dependencies[] = link_css
+dependencies[] = menuperformance
+
+;config externe
+dependencies[] = ctm_core

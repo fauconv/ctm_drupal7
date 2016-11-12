@@ -1,0 +1,11 @@
+name = Entity Translation Export/Import 2
+description = Exports/Imports entity translation fields. Very useful for fast updating of taxonomy terms, nodes etc. Modified to use UUIS
+core = 7.x
+package = Multilingual - Entity Translation
+dependencies[] = entity
+dependencies[] = entity_translation
+dependencies[] = uuid
+
+version = "7.x-1.0"
+core = "7.x"
+

@@ -1,0 +1,141 @@
+diff --git a/content_type_extras.module b/content_type_extras.module
+index 67a1ac2..2792aad 100644
+--- a/content_type_extras.module
++++ b/content_type_extras.module
+@@ -411,6 +411,8 @@ function content_type_extras_get_initial($setting = NULL) {
+     'create_roles' => array($admin_role => $admin_role),
+     'edit_roles'   => array($admin_role => $admin_role),
+     'delete_roles' => array($admin_role => $admin_role),
++    'edit_own_roles' => array($admin_role => $admin_role),
++    'delete_own_roles' => array($admin_role => $admin_role),
+   );
+ 
+   if ($setting == NULL) {
+diff --git a/includes/content_type_extras.admin.inc b/includes/content_type_extras.admin.inc
+index acf14f9..5aa1a45 100644
+--- a/includes/content_type_extras.admin.inc
++++ b/includes/content_type_extras.admin.inc
+@@ -9,7 +9,8 @@ function content_type_extras_settings() {
+   if ($admin_role != 0) {
+     $roles[$admin_role] .= t(' <em>(administrator role)</em>');
+   }
+-  
++  if(!isset($defaults['user_permissions']['edit_own_roles'])) $defaults['user_permissions']['edit_own_roles']= array();
++  if(!isset($defaults['user_permissions']['delete_own_roles'])) $defaults['user_permissions']['delete_own_roles']= array();
+   $form = array(
+     'intro' => array(
+       '#markup' => t('Set the default settings for all new content types below. These settings can be overridden on the content type page.'),
+@@ -137,12 +138,24 @@ function content_type_extras_settings() {
+           '#options'       => $roles,
+           '#default_value' => $defaults['user_permissions']['edit_roles'],
+         ),
++        'edit_own_roles' => array(
++          '#type'          => 'checkboxes',
++          '#title'         => t('Roles that can EDIT own content'),
++          '#options'       => $roles,
++          '#default_value' => $defaults['user_permissions']['edit_own_roles'],
++        ),
+         'delete_roles' => array(
+           '#type'          => 'checkboxes',
+           '#title'         => t('Roles that can DELETE any content'),
+           '#options'       => $roles,
+           '#default_value' => $defaults['user_permissions']['delete_roles'],
+         ),
++        'delete_own_roles' => array(
++          '#type'          => 'checkboxes',
++          '#title'         => t('Roles that can DELETE own content'),
++          '#options'       => $roles,
++          '#default_value' => $defaults['user_permissions']['delete_own_roles'],
++        ),
+       ),
+       'extras' => array(
+         '#type'   => 'fieldset',
+diff --git a/includes/content_type_extras.node_type_form.inc b/includes/content_type_extras.node_type_form.inc
+index f4e7102..b3f173a 100644
+--- a/includes/content_type_extras.node_type_form.inc
++++ b/includes/content_type_extras.node_type_form.inc
+@@ -149,11 +149,16 @@ function content_type_extras_node_type_form(&$form) {
+   $create_roles = array();
+   $edit_roles = array();
+   $delete_roles = array();
++  $edit_own_roles = array();
++  $delete_own_roles = array();
++  
+   // If we are on an existing content type form
+   if (!empty($form['name']['#default_value'])) {
+     $create_roles = user_roles(FALSE, 'create ' . $form['#node_type']->type . ' content');
+     $edit_roles   = user_roles(FALSE, 'edit any ' . $form['#node_type']->type . ' content');
+     $delete_roles = user_roles(FALSE, 'delete any ' . $form['#node_type']->type . ' content');
++    $delete_own_roles = user_roles(FALSE, 'delete own ' . $form['#node_type']->type . ' content');
++    $edit_own_roles = user_roles(FALSE, 'edit own ' . $form['#node_type']->type . ' content');
+   }
+   // We are creating a new content type
+   else {
+@@ -163,7 +168,9 @@ function content_type_extras_node_type_form(&$form) {
+     
+     $create_roles = $selected_perms['create_roles'];
+     $edit_roles   = $selected_perms['edit_roles'];
++    $edit_own_roles   = $selected_perms['edit_own_roles'];
+     $delete_roles = $selected_perms['delete_roles'];
++    $delete_own_roles = $selected_perms['delete_own_roles'];
+   }
+   
+   $permission_select = content_type_extras_get_default('content_type_extras_user_permissions_select');
+@@ -189,12 +196,24 @@ function content_type_extras_node_type_form(&$form) {
+         '#options'       => $roles,
+         '#default_value' => array_keys($edit_roles),
+       ),
++      'edit_own_roles' => array(
++        '#type'          => 'checkboxes',
++        '#title'         => t('Roles that can EDIT own content of this type'),
++        '#options'       => $roles,
++        '#default_value' => array_keys($edit_own_roles),
++      ),
+       'delete_roles' => array(
+         '#type'          => 'checkboxes',
+         '#title'         => t('Roles that can DELETE any content of this type'),
+         '#options'       => $roles,
+         '#default_value' => array_keys($delete_roles),
+       ),
++        'delete_own_roles' => array(
++        '#type'          => 'checkboxes',
++        '#title'         => t('Roles that can DELETE own content of this type'),
++        '#options'       => $roles,
++        '#default_value' => array_keys($delete_own_roles),
++      ),
+     );
+   }
+   
+@@ -271,11 +290,27 @@ function content_type_extras_node_type_form_submit(&$form, &$form_state) {
+         'create ' . $values['type'] . ' content',
+       );
+     }
+-    else {
+-      $set_perms = array(
+-        $type . ' own ' . $values['type'] . ' content',
+-        $type . ' any ' . $values['type'] . ' content',
+-      );
++    elseif ($type == 'edit'){
++      if($trash == 'own') {
++        $set_perms = array(
++          $type . ' own ' . $values['type'] . ' content',
++        );
++      } else {
++        $set_perms = array(
++          $type . ' any ' . $values['type'] . ' content',
++        );
++      }
++    }
++    elseif ($type == 'delete'){
++      if($trash == 'own') {
++        $set_perms = array(
++          $type . ' own ' . $values['type'] . ' content',
++        );
++      } else {
++        $set_perms = array(
++          $type . ' any ' . $values['type'] . ' content',
++        );
++      }
+     }
+     
+     foreach ($group as $rid => $setting) {

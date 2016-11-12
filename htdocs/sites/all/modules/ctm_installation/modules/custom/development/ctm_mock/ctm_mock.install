@@ -1,0 +1,22 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the ctm_mock module.
+ *
+ */
+
+/**
+ * Implements hook_install().
+ */
+function ctm_mock_install() {
+
+  // changement du poids du module
+  db_update('system')
+          ->fields(array('weight' => -50))
+          ->condition('name', 'ctm_mock_install', '=')
+          ->execute();
+
+  // set mode
+  variable_set('ctm_mock_activation', CTM_MOCK_NO);
+}

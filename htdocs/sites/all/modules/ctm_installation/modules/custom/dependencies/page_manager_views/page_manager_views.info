@@ -1,0 +1,12 @@
+name = Page manager views
+description = Adds a new variant type to page manager, to redirect /taxonomy/term/% to other views depending of context
+core = 7.x
+package = Chaos tool suite
+dependencies[] = page_manager
+dependencies[] = taxonomy
+files[] = page_manager_views.module
+files[] = plugins/task_handlers/views_redirect.inc
+
+version = "7.x-1.0"
+core = "7.x"
+

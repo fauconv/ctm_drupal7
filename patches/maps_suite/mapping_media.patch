@@ -1,0 +1,20 @@
+ .../Drupal/maps_import/Mapping/Source/MapsSystem/Media/Media.php    | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/htdocs/sites/all/modules/options/contrib/maps_suite/modules/import/lib/Drupal/maps_import/Mapping/Source/MapsSystem/Media/Media.php b/htdocs/sites/all/modules/options/contrib/maps_suite/modules/import/lib/Drupal/maps_import/Mapping/Source/MapsSystem/Media/Media.php
+index f712e1c..410050a 100644
+--- a/htdocs/sites/all/modules/options/contrib/maps_suite/modules/import/lib/Drupal/maps_import/Mapping/Source/MapsSystem/Media/Media.php
++++ b/htdocs/sites/all/modules/options/contrib/maps_suite/modules/import/lib/Drupal/maps_import/Mapping/Source/MapsSystem/Media/Media.php
+@@ -150,7 +150,11 @@ abstract class Media extends PropertyWrapper {
+    */
+   public function exists(Profile $profile) {
+     $exploded = explode(':', $this->id);
+-    $cid = $exploded[1];
++    if(isset($exploded[1])) {
++      $cid = $exploded[1];
++    } else {
++      $cid = $exploded[0];
++    }
+ 
+     return (bool) maps_import_converter_load_by_name($cid, $profile->getPid());
+   }

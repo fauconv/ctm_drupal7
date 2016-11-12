@@ -1,0 +1,13 @@
+.hidden {
+  display: none;
+}
+
+/* largeur du filter format sous un champs textarea */
+.filter-wrapper {
+  width: 330px;
+}
+
+/* on cache la case a cacher publier */
+.node-form .form-item-status {
+  display: none;
+}

@@ -1,0 +1,12 @@
+name = Menu Attach Block 2
+description = "Embed blocks into menu items."
+core = 7.x
+
+dependencies[] = menu
+dependencies[] = block
+
+
+version = "7.x-1.0"
+core = "7.x"
+project = "menu_attach_block2"
+

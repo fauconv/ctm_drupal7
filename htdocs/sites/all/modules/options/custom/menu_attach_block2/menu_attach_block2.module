@@ -1,0 +1,156 @@
+<?php
+
+/**
+ * @file
+ * Module to enable adding a block to menu item.
+ *
+ * This allows an admin to select a block for a menu item as well as, or
+ * instead of, a title and link. When the link is rendered, the block is
+ * inserted in the containing element after the <a> tag.
+ *
+ *  Based heavily on menu_views.module.
+ *
+ * @link http://drupal.org/project/menu_views @endlink
+ */
+
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Appends the attached block's title to the title of the menu item.
+ */
+function menu_attach_block2_form_menu_overview_form_alter(&$form, &$form_state) {
+  $elements = element_children($form);
+  foreach ($elements as $mlid) {
+    $element = &$form[$mlid];
+    // Only process menu items.
+    if (isset($element['#item'])) {
+      $item = &$element['#item'];
+      $options = $item['options'];
+      if (!empty($options['menu_attach_block'])) {
+        $block = menu_attach_block2_load_from_key($options['menu_attach_block']);
+        if (!empty($block->delta)) {
+          $info = module_invoke($block->module, 'block_info', $block->delta);
+          $link = l($info[$block->delta]['info'], 'admin/structure/block/manage/' . $block->module . '/' . $block->delta . '/configure');
+          $element['title']['#suffix'] = '<div>Attached block:  ' . $link . ' </div>';
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Inserts a block selector.
+ */
+function menu_attach_block2_form_menu_edit_item_alter(&$form, &$form_state) {
+  $default_theme = variable_get('theme_default');
+  $options = array();
+  module_load_include('inc', 'block', 'block.admin');
+  $blocks = block_admin_display_prepare_blocks($default_theme);
+  foreach ($blocks as $block) {
+    $options[$block['module'] . '|' . $block['delta']] = $block['info'];
+  }
+  asort($options);
+
+  $form['menu_attach_block'] = array(
+      '#type' => 'select',
+    '#title' => t('Block'),
+    '#empty_option' => t('- None -'),
+    '#description' => t('Select a block to attach.'),
+    '#default_value' => isset($form['options']['#value']['menu_attach_block']) ? $form['options']['#value']['menu_attach_block'] : '',
+      '#options' => $options,
+  );
+  $form['#submit'] = array_merge(array('menu_attach_block2_menu_edit_item_submit'), $form['#submit']);
+}
+
+/**
+ * Submit handler for menu_edit_item form.
+ *
+ * @todo Handle removal of block attachments from menu items.
+ */
+function menu_attach_block2_menu_edit_item_submit($form, &$form_state) {
+  // Save menu_attach_blocks values in the links options.
+  $values = &$form_state['values'];
+  if (isset($values['menu_attach_block'])) {
+    $values['options']['menu_attach_block'] = $values['menu_attach_block'];
+  }
+  unset($values['menu_attach_block']);
+}
+
+/**
+ * Loads a block object using a menu_attach_block key.
+ *
+ * Block references are saved in the menu object in the format module|delta.
+ *
+ * @param string $key
+ *   Key as saved by the menu admin form, in the format module|delta.
+ * @param string $hook
+ *   name of hook_block implementation to call to get extra data about a block.
+ *   Do not include the 'block_' prefix.
+ *
+ * @return array
+ *   Fully loaded block array.
+ *
+ * @see http://api.drupal.org/api/search/7/hook_block
+ */
+function menu_attach_block2_load_from_key($key) {
+  return call_user_func_array('block_load', explode('|', $key));
+}
+
+/**
+ * hook_preprocess_block
+ * render block
+ * @param type $variable
+ * @return type
+ */
+function menu_attach_block2_block_view_alter(&$array,&$block) {
+  if(empty($array['content']) || !is_array($array['content'])) {
+    return;
+  }
+  menu_attach_block2_render_block($array['content']);
+}
+
+/**
+ * recursive render
+ * @param type $elements
+ */
+function menu_attach_block2_render_block(&$elements) {
+
+  foreach (element_children($elements) as $idx) {
+    $elt = &$elements[$idx];
+    if (!empty($elt['#localized_options']['menu_attach_block'])) {
+      $block = menu_attach_block2_load_from_key($elt['#localized_options']['menu_attach_block']);
+      $block_content = _block_render_blocks(array($block));
+      $attrib = $elt['#attributes'];
+      $elt = _block_get_renderable_array($block_content);
+      $elt[key($block_content)]['#link_attributes'] = $attrib;
+      $elt[key($block_content)]['#theme_wrappers'][] = 'menu_attach_block2_wrapper';
+    }
+    if (!empty($elt['#below'])) {
+      menu_attach_block2_render_block($elt['#below']);
+    }
+  }
+}
+
+/**
+ *
+ */
+function menu_attach_block2_theme() {
+  return array(
+    'menu_attach_block2_wrapper' => array(
+        'render element' => 'element',
+      ),
+  );
+}
+
+/**
+ * wrapper to transforme a div block in li block
+ * @param type $variables
+ * @return string
+ */
+function theme_menu_attach_block2_wrapper($variables) {
+  $element = $variables['element'];
+  return '<li' . drupal_attributes($element['#link_attributes']) . '>'.$element['#children'].'</li>';
+}

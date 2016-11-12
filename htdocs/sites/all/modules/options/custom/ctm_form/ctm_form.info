@@ -1,0 +1,14 @@
+name = CTM form
+description = form entity equivalent to webform but more powerfull
+core = 7.x
+package = CTM
+
+dependencies[] = ctm_mail
+dependencies[] = entityform_notifications
+dependencies[] = field_conditional_state
+dependencies[] = views_data_export
+dependencies[] = telephone
+dependencies[] = countries
+dependencies[] = countryicons
+dependencies[] = countryicons_gosquared
+

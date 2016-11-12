@@ -1,0 +1,32 @@
+diff --git a/includes/rules.core.inc b/includes/rules.core.inc
+index 559d1cf..c687e45 100644
+--- a/includes/rules.core.inc
++++ b/includes/rules.core.inc
+@@ -1722,6 +1722,12 @@ abstract class RulesAbstractPlugin extends RulesPlugin {
+ 
+         foreach (get_class_methods($interface) as $method) {
+           if (isset($info['callbacks'][$method]) && ($function = $info['callbacks'][$method])) {
++            if (!function_exists($function)) {
++              if ($info['module'] == 'rules') {
++                $names = explode('_', $function);
++                module_load_include('inc', 'rules', 'modules/' . $names[1] . '.eval');
++              }
++            }
+             $methods[$method][0] = $function;
+             $file_names[$method] = $this->getFileName($function, $includes);
+           }
+diff --git a/rules.info b/rules.info
+index 0a744d5..42361c2 100644
+--- a/rules.info
++++ b/rules.info
+@@ -15,6 +15,10 @@ files[] = modules/node.eval.inc
+ files[] = modules/php.eval.inc
+ files[] = modules/rules_core.eval.inc
+ files[] = modules/system.eval.inc
++files[] = modules/user.eval.inc
++files[] = modules/path.eval.inc
++files[] = modules/entity.eval.inc
++files[] = modules/data.eval.inc
+ files[] = ui/ui.controller.inc
+ files[] = ui/ui.core.inc
+ files[] = ui/ui.data.inc

@@ -1,0 +1,69 @@
+diff --git a/boost.module b/boost.module
+index a05e594..1cd02b4 100644
+--- a/boost.module
++++ b/boost.module
+@@ -375,13 +375,8 @@ function boost_flush_caches() {
+  * Implements hook_expire_cache (from the 'expire' module)
+  */
+ function boost_expire_cache($urls) {
+-  global $base_root;
+ 
+   foreach ($urls as $url) {
+-    // Check if the URL to be flushed matches our base URL
+-    // base_root: http://www.example.org
+-    // url: http://www.example.org/node/123
+-    if (strpos($url, $base_root) === 0) {
+       $boost = boost_transform_url($url);
+ 
+       // We need the extention for the filename
+@@ -406,7 +401,6 @@ function boost_expire_cache($urls) {
+       else {
+         boost_log('Could not delete the cache for !url, file !file does not exist.', array('!url' => $url, '!file' => $filename), WATCHDOG_DEBUG);
+       }
+-    }
+   }
+ }
+ 
+@@ -446,7 +440,7 @@ function boost_transform_url($url = NULL, $b_path = NULL) {
+       $items[$hash] = array('cache_this' => FALSE);
+       return $items[$hash];
+     }
+-    $parts['base_dir'] = boost_get_normal_cache_dir() . '/' . $parts['host'] . $b_path;
++    $parts['base_dir'] = boost_get_normal_cache_dir() . '/' . boost_get_htaccess_host() . $b_path;
+     $parts['filename'] = $parts['base_dir'] . $parts['full_path'] . variable_get('boost_char', BOOST_CHAR) . $parts['query'];
+     $parts['directory'] = dirname($parts['filename']);
+ 
+@@ -486,6 +480,19 @@ function boost_get_normal_cache_dir() {
+   return variable_get('boost_root_cache_dir', BOOST_ROOT_CACHE_DIR) . '/' . variable_get('boost_normal_dir', BOOST_NORMAL_DIR);
+ }
+ 
++function boost_get_htaccess_host() {
++  $boost_host = variable_get('boost_server_name_http_host', '%{HTTP_HOST}');
++  switch($boost_host) {
++    case '%{HTTP_HOST}' :
++      $boost_host = $_SERVER["HTTP_HOST"];
++    break;
++    case '%{SERVER_NAME}' :
++      $boost_host = $_SERVER["SERVER_NAME"];
++    break;
++  }
++  return $boost_host;
++}
++
+ /**
+  * parse_url that takes into account the base_path
+  *
+@@ -1446,11 +1453,9 @@ function boost_form_submit_handler() {
+  * Overwrite old htaccess rules with new ones.
+  */
+ function boost_htaccess_cache_dir_put() {
+-  global $_boost, $base_path, $base_root;
++  global $_boost, $base_path;
+   if (empty($_boost['base_dir'])) {
+-    $url = $base_root . request_uri();
+-    $parts = parse_url($url);
+-    $_boost['base_dir'] = boost_get_normal_cache_dir() . '/' . $parts['host'] . $base_path;
++    $_boost['base_dir'] = boost_get_normal_cache_dir() . '/' . boost_get_htaccess_host() . $base_path;
+   }
+   boost_write_file($_boost['base_dir'] . '.htaccess', boost_htaccess_cache_dir_generate());
+ }

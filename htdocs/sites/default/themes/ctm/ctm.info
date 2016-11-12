@@ -1,0 +1,19 @@
+name = ctm theme
+description = Custom theme for this site
+screenshot = screenshot.png
+version = "7.x-1.0"
+core = 7.x
+engine = phptemplate
+package = "custom"
+
+regions[header] = Header
+regions[help] = Help
+regions[menu] = Menu
+regions[content] = Content
+regions[footer] = Footer
+
+stylesheets[all][] = css/styles.css
+
+scripts[] = js/main.js
+
+base theme = garland

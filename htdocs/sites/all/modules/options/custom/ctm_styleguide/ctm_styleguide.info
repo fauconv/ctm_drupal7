@@ -1,0 +1,7 @@
+name = "CTM styleguide"
+description = "Custom styleguide for the project"
+core = 7.x
+package = "CTM"
+version = "7.x-1.0"
+
+dependencies[] = styleguide

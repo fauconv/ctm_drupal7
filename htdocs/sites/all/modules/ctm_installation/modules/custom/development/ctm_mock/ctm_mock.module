@@ -1,0 +1,135 @@
+<?php
+/**
+ * @file
+ * definition du mode mock
+ */
+/* etats possibles */
+define('CTM_MOCK_NO', 0);
+define('CTM_MOCK_MOCK', 1);
+
+/**
+ * helper fonction qui donne la liste des modes
+ */
+function ctm_mock_get_modes() {
+  $mode = array(
+    CTM_MOCK_NO => 'Drupal',
+    CTM_MOCK_MOCK => 'Mock',
+  );
+  return $mode;
+}
+
+/**
+ * Implements hook_init().
+ * logue l utilisateur si on est en mode mock
+ * identique a gina4drupal
+ */
+function ctm_mock_init() {
+  global $user;
+  if(drupal_is_cli()) {
+    return;
+  }
+  //$user = user_load(1); // comment devenir super admin
+  switch(variable_get('ctm_mock_activation')) {
+    case CTM_MOCK_MOCK:
+      if(!$user->uid) {
+        $mock_user = ctm_mock_readMock();
+        if(!empty($mock_user['username']) && !empty($mock_user['email'])) {
+          user_external_login_register($mock_user['username'], 'ctm_mock');
+          $user = user_external_load($mock_user['username']);
+          $user->mail = $mock_user['email'];
+          $user->roles = array();
+          foreach($mock_user['roles'] as $role) {
+            $roleID = user_role_load_by_name($role);
+            if($roleID) {
+              $user->roles[$roleID->rid] = $roleID->name;
+            }
+          }
+          // @TODO : add other fields info
+          user_save($user);
+
+          // on se rappel soit meme
+          $uri = request_uri();
+          drupal_goto($uri);
+        }
+      }
+      break;
+  }
+}
+
+/**
+ * helper fonction pour lire le fichier mock du site
+ * et recreer le meme environnement que OPENAM
+ */
+function ctm_mock_readMock() {
+  global $base_root;
+  $public_base_root = variable_get('base_root_public', ''); // si base root n est pas defini on ne peut pas savoir si on est sur la partie public ou pas donc on est tout le temps logue
+  if($base_root == $public_base_root) {
+    return FALSE; // on est pas sur la partie admin donc on est pas identifie
+  }
+  if(!isset($_SESSION['ctm_mock_info'])) {
+    $file = dirname(DRUPAL_ROOT) . '/config/mock-' . basename(conf_path()) . '.xml';
+    if(!file_exists($file)) {
+      drupal_set_message(t('Le fichier Mock n\'a pas été trouvé'), 'error');
+      return FALSE;
+    }
+    if(!($xml = simplexml_load_file($file))) {
+      drupal_set_message(t('Le fichier Mock est mal formaté', 'error'));
+      return FALSE;
+    }
+    if((string) $xml->USERNAME == "") {
+      drupal_set_message(t('Le fichier Mock est mal formaté : pas de noeud USERNAME', 'error'));
+      return FALSE;
+    }
+    if((string) $xml->EMAIL == "") {
+      drupal_set_message(t('Le fichier Mock est mal formaté : pas de noeud EMAIL', 'error'));
+      return FALSE;
+    }
+    $_SESSION['ctm_mock_info']['username'] = (string) $xml->USERNAME;
+    $_SESSION['ctm_mock_info']['email'] = (string) $xml->EMAIL;
+    if(!isset($xml->FIELDS)) {
+      drupal_set_message(t('Le fichier Mock est mal formaté : pas de noeud FIELDS', 'error'));
+      return FALSE;
+    }
+    $_SESSION['ctm_mock_info']['fields'] = array();
+    foreach($xml->FIELDS->children() as $name => $value) {
+      $_SESSION['ctm_mock_info']['fields'][$name] = (string) $value;
+    }
+    if(!isset($xml->ROLES)) {
+      drupal_set_message(t('Le fichier Mock est mal formaté : pas de noeud FIELDS', 'error'));
+      return FALSE;
+    }
+    $_SESSION['ctm_mock_info']['roles'] = array();
+    foreach($xml->ROLES->children() as $value) {
+      $_SESSION['ctm_mock_info']['roles'][(string) $value] = (string) $value;
+    }
+  }
+  return $_SESSION['ctm_mock_info'];
+}
+
+/**
+ * Implements hook_menu().
+ * Déclare la page d'admin
+ */
+function ctm_mock_menu() {
+  $items['admin/config/development/ctm/ctm_mock'] = array(
+      'title' => 'Mode Mock',
+      'description' => 'active or disactive Mock (environnement de dev)',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('ctm_mock_config_form'),
+      'access arguments' => array('administer modules'),
+      'type' => MENU_NORMAL_ITEM,
+      'file' => 'ctm_mock.admin.inc',
+  );
+  return $items;
+}
+
+/**
+ * postione le mode d'authentification et active les modules necessaires
+ */
+function ctm_mock_activate($mode = -1) {
+  if($mode == -1) {
+    $mode = variable_get('ctm_mock_activation', CTM_MOCK_NO);
+  }
+  variable_set('ctm_mock_activation', $mode);
+  menu_rebuild();
+}

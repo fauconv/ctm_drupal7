@@ -1,0 +1,143 @@
+Index: www/sites/all/modules/ctm_installation/modules/contrib/dependencies/shs/js/shs.js
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- www/sites/all/modules/ctm_installation/modules/contrib/dependencies/shs/js/shs.js	(date 1447079597000)
++++ www/sites/all/modules/ctm_installation/modules/contrib/dependencies/shs/js/shs.js	(revision )
+@@ -13,6 +13,7 @@
+     // Default function to attach the behavior.
+     attach: function (context, settings) {
+       var self = this;
++
+       $('input.shs-enabled')
+         .not('.shs-processed')
+         .once('shs')
+@@ -42,7 +43,7 @@
+                 // Add error-class if there was an error with the original field.
+                 $select.addClass('error');
+               }
+-              $select.appendTo($field.parent());
++              $select.appendTo($field.parent('.shs-wrapper-processed'));
+               // Retrieve data for this level.
+               getTermChildren($select, fieldSettings, parent_id, parent.tid, $field.attr('id'));
+               // Use current term id as parent id for the next level.
+@@ -52,11 +53,13 @@
+               else {
+                 parent_id = parent.tid;
+               }
++
+             });
+             var addNextLevel = false;
+             if ((level > 1 || parent_id) && (fieldSettings.settings.create_new_terms && fieldSettings.settings.create_new_levels)) {
+               // Add next level in hierarchy if new levels may be created.
+               addNextLevel = true;
++              console.log('heyyy');
+             }
+             if (fieldSettings.default_value && (fieldSettings.default_value.tid == parent_id)) {
+               addNextLevel = true;
+@@ -64,7 +67,7 @@
+             if (addNextLevel) {
+               // Try to add one additional level.
+               $select = shsElementCreate($field.attr('id'), fieldSettings, level);
+-              $select.appendTo($field.parent());
++              $select.appendTo($field.parent('.form-item'));
+               // Retrieve data for this level.
+               getTermChildren($select, fieldSettings, parent_id, 0, $field.attr('id'));
+             }
+@@ -156,6 +159,8 @@
+             // Display original dropdown element.
+             $element.fadeIn();
+             $element.css('display','inline-block');
++            //encapsulamos los select tag en un div
++            $element.wrap('<div class="new icck-theme-wrapper"></div>');
+           }
+ 
+           // If there is no data, the field is required and the user is allowed
+@@ -163,7 +168,13 @@
+           if (data.data.length == 0 && settings.settings.required && settings.settings.create_new_terms && (settings.settings.create_new_levels || (parent_value + default_value == 0))) {
+             updateElements($element, base_id, settings, 1);
+           }
++          /*
++          if ($element.hasClass('addParent')) {
++            $element.wrap('<div></div>');
++            $element.removeClass('addParent');
+-        }
++          }
++          */
++        }
+       },
+       error: function(xhr, status, error) {
+       }
+@@ -243,17 +254,22 @@
+    */
+   updateElements = function($triggering_element, base_id, settings, level) {
+     // Remove all following elements.
+-    $triggering_element.nextAll('select').each(function() {
++    $triggering_element.parent('div.new').nextAll('div.new').find('select').each(function() {
+       if (Drupal.settings.chosen) {
+         // Remove element created by chosen.
+         var elem_id = $(this).attr('id');
+         $('#' + elem_id.replace(/-/g, '_') + '_chzn').remove();
+       }
+-      // Remove element.
+-      $(this).remove();
++
++      // remove element or parent if there is one
++      var $elt = $(this);
++      var $parent = $elt.parent('.icck-theme-wrapper');
++      ($parent.length > 0) ? $parent.remove() : $(this).remove();
++
+     });
+     //$triggering_element.nextAll('.chzn-container').remove();
+     $triggering_element.nextAll('.shs-term-add-new-wrapper').remove();
++
+     // Create next level (if the value is != 0).
+     if ($triggering_element.val() == '_add_new_') {
+       // Hide element.
+@@ -263,7 +279,7 @@
+         .addClass('shs-term-add-new-wrapper')
+         .addClass('clearfix');
+       // Append container to parent.
+-      $container.appendTo($triggering_element.parent());
++      $container.appendTo($triggering_element.parent('.shs-wrapper-processed'));
+ 
+       // Add textfield for term name.
+       $nameField = $('<input type="text">')
+@@ -307,7 +323,7 @@
+           // Create a term object.
+           var term = {
+             vid: settings.vid,
+-            parent: $triggering_element.prev('select').val() || 0,
++            parent: $triggering_element.parent().prev('div.new').find('select').val() || 0,
+             name: termName
+           };
+           if (termName.length > 0) {
+@@ -328,7 +344,7 @@
+     else if ($triggering_element.val() != 0) {
+       level++;
+       $element_new = shsElementCreate(base_id, settings, level);
+-      $element_new.appendTo($triggering_element.parent());
++      $element_new.appendTo($triggering_element.closest('.shs-wrapper-processed'));
+       // Retrieve list of items for the new element.
+       getTermChildren($element_new, settings, $triggering_element.val(), 0, base_id);
+     }
+@@ -351,8 +367,10 @@
+    *   The new (empty) <select> element.
+    */
+   shsElementCreate = function(base_id, settings, level) {
++
+     // Create element and initially hide it.
+     if (settings.multiple) {
++
+       $element = $('<select>')
+         .attr('id', base_id + '-select-' + level)
+         .attr('multiple', 'multiple')
+@@ -366,6 +384,7 @@
+         .hide();
+     }
+     else {
++
+       $element = $('<select>')
+         .attr('id', base_id + '-select-' + level)
+         .addClass('shs-select')

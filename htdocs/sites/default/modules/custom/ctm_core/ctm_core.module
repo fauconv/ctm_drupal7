@@ -1,0 +1,12 @@
+<?php
+
+/**
+ * implements hook_installation_config_file
+ * Pour ajouter des fonctions configurations a l'installation
+ * Les fonctions doivent etre de la forme : ctm_installation_config_*[_after | _before]
+ */
+define('SITE_NAME','Website name');
+
+function ctm_core_installation_config() {
+  return array();
+}

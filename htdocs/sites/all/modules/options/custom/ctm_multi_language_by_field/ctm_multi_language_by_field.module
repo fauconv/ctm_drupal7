@@ -1,0 +1,59 @@
+<?php
+
+require dirname(__FILE__) . '/ctm_multi_language_by_field.api.inc'; // librairie de fonctions utilisable par les features
+
+/**
+ * implements hook_installation_config_file
+ * Pour ajouter des fonctions configurations a l'installation
+ * Les fonctions doivent etre de la forme : ctm_installation_config_*[_after]
+ */
+function ctm_multi_language_by_field_installation_config() {
+  if(module_exists('ctm_node_block')) {
+    return array('ctm_installation','ctm_node_block');
+  }
+  return array('ctm_installation');
+}
+
+/**
+ * Implements hook_menu
+ * Provide languages menu
+ * @return string
+ */
+function ctm_multi_language_by_field_menu() {
+  $items = array();
+  $items['languages'] = array(
+      'title' => 'Languages',
+      'page callback' => 'ctm_multi_language_by_field_redirect',
+      'access arguments' => array('access administration menu'),
+      'page arguments' => array('0'),
+      'menu_name' => 'management',
+  );
+  $list = language_list();
+  if (count($list) >= 2) {
+    foreach($list as $language) {
+      $items['languages/'.$language->prefix] = array(
+          'title' => $language->name,
+          'page callback' => 'ctm_multi_language_by_field_redirect',
+          'access arguments' => array('access administration menu'),
+          'page arguments' => array(1),
+          'menu_name' => 'management',
+      );
+    }
+  }
+  return $items;
+}
+
+/**
+ * redirect to the referer page with the new language
+ * @param type $langcode
+ */
+function ctm_multi_language_by_field_redirect($langcode) {
+  $path = ctm_installation_referer_path();
+  if($langcode === '0') {
+    drupal_goto($path);
+  } else {
+    $languages = language_list();
+    $language = $languages[$langcode];
+    drupal_goto($path, array('language'=>$language));
+  }
+}

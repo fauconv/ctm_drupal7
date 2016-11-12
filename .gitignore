@@ -1,0 +1,13 @@
+/config/settings-site_*
+/config/masquerade-site_*
+/config/mock-site_*
+/config/parameters-site_*
+/config/site_*
+/config/sites.php
+/media/site_*
+/htdocs/media
+/htdocs/sites/sites.php
+/scripts/**/node_modules/
+/scripts/**/bower_components/
+.idea
+

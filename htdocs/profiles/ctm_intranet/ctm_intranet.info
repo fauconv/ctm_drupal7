@@ -1,0 +1,9 @@
+name = "intranet"
+description = "Installation standard - Site intranet"
+version = 7.x-1.0
+core = 7.x
+
+dependencies[] = ctm_installation
+
+;module specifique intranet
+dependencies[] = views_puc
