@@ -397,7 +397,7 @@ phase_2() {
   else
     PROFIL="ctm_intranet"
   fi
-  URL0=`echo $HOSTNAME | sed 's|,.*||g' | sed 's|http[s]*://||g' | sed "s|'||g"`
+  URL0=`echo $HOSTNAME | sed 's|,.*||g' | sed 's|http[s]*://||g' | sed "s|'||g" | sed "s|/.*||g"`
   cd ${SITE_DIR}
   drush site-install $PROFIL -y --account-name="developer" --account-mail="webmaster@${URL0}" --site-mail="no-reply@${URL0}" --site-name="${SITE_NAME}" --sites-subdir="${DIR_NAME}" --db-url="${DATABASE}" ctm_commun_form.authentication_use="${MOCK}" install_configure_form.update_status_module='array(FALSE,FALSE)' install_configure_form.site_default_country='CH' install_configure_form.date_default_timezone='Europe/Zurich'
   drush ctm_queue
