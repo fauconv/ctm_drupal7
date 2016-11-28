@@ -1024,7 +1024,7 @@ function ctm_installation_config_blocks($profile, $roles, $op = 'update') {
           'weight' => 0,
           'region' => 'content',
           'pages' => '',
-          'cache' => DRUPAL_CACHE_PER_PAGE,
+          'cache' => DRUPAL_NO_CACHE,
       ),
       array(
           'module' => 'system',
@@ -1034,7 +1034,7 @@ function ctm_installation_config_blocks($profile, $roles, $op = 'update') {
           'weight' => 0,
           'region' => 'content',
           'pages' => '',
-          'cache' => DRUPAL_CACHE_PER_PAGE,
+          'cache' => DRUPAL_NO_CACHE,
       ),
       array(
           'module' => 'system',
