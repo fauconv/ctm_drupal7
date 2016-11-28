@@ -11,4 +11,5 @@
 /scripts/**/bower_components/
 .idea
 
-/nbproject/private/
+/nbproject/*
+/nbproject/**/*
