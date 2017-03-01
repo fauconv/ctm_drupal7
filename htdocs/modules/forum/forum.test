@@ -113,7 +113,7 @@ class ForumTestCase extends DrupalWebTestCase {
    */
   function testForum() {
     //Check that the basic forum install creates a default forum topic
-    $this->drupalGet("forum");
+    $this->drupalGet("/forum");
     // Look for the "General discussion" default forum
     $this->assertText(t("General discussion"), "Found the default forum at the /forum listing");
 
