@@ -132,12 +132,8 @@ function ctm_commun_requirements(&$install_state) {
   if (!is_dir($basePath . DIRECTORY_SEPARATOR . 'config')) {
     $failures[] = '<b>' . st('directory not found') . ' :</b> ' . st("config\n\n");
   }
-  if (!is_dir($basePath . DIRECTORY_SEPARATOR . 'media')) {
+  if (!is_dir($drupal_root . DIRECTORY_SEPARATOR . 'media')) {
     $failures[] = '<b>' . st('directory not found') . ' :</b> ' . st("media\n\n");
-  }
-  $media_link = $drupal_root . DIRECTORY_SEPARATOR . 'media';
-  if (!is_link($media_link) && !is_dir($media_link)) {
-    $failures[] = '<b>' . st('link not found') . ' :</b> ' . st("media->../media\n\n");
   }
   if (!empty($failures)) {
     throw new Exception(implode("\n\n", $failures));

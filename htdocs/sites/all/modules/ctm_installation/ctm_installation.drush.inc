@@ -57,12 +57,10 @@ function ctm_installation_drush_help($section) {
       return "Execute le contenu de la queue et evite l'apparition d'une barre de progression a la fin d'une installation ou d'une mise a jour.";
     case 'drush:ctm-installation-mise-a-jour':
       return "Effectue une mise a jour du master vers la derniere version";
-    case 'drush:ctm-installation-dis-dev':
-      return "Disable all developer modules";
-    case 'drush:ctm-installation-en-dev':
-      return "Enable all default developer modules";
-    case 'drush:entitycache-load':
-      return dt('Used without parameters, this command loads all the various content in the entities into cache using entity_load()');
+    case 'ctm-installation-config':
+      return "Launch a configuration function from ctm_installation individualy.Param: the name of the function without 'ctm_installation_config_'";
+    case 'drush:ctm-installation-tools':
+      return "Enable/disable (with 'dis') a type of tools: 'devel'/'seo'/'review'";
   }
 }
 
@@ -72,13 +70,13 @@ function ctm_installation_drush_help($section) {
 function drush_ctm_installation_tools($tool) {
   global $base_url;
   if (drush_get_option('dis', FALSE)) {
-    echo "disabling '.$tool.' tools....$base_url\n";
+    echo "disabling '$tool' tools....$base_url\n";
     ctm_installation_tools($tool, FALSE);
     ctm_installation_process_queue();
     drush_log($tool.' tools disabled....', 'success');
   }
   else {
-    echo "enabling '.$tool.' tools....$base_url\n";
+    echo "enabling '$tool' tools....$base_url\n";
     ctm_installation_tools($tool, TRUE);
     ctm_installation_process_queue();
     drush_log($tool.' tools enabled....', 'success');

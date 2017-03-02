@@ -145,7 +145,6 @@ getoptions(){
       -h)
         shift;
         HOSTNAME="$1"
-        source ${ABS_SCRIPT_PATH}/${SOURCE_PATH}/${SOURCE_URL}
         ;;
       -l)
         LIST=true
@@ -204,6 +203,7 @@ validate_url() {
       exit 1
     fi
   fi
+  source ${ABS_SCRIPT_PATH}/${SOURCE_PATH}/${SOURCE_URL}
 }
 
 #
@@ -388,10 +388,8 @@ phase_1() {
   RESULT="'environnement'] = '${ENVI}';"
   sed "s|${PATTERN}|${RESULT}|1" ${ABS_SITE_PATH}/settings2.php > ${ABS_SITE_PATH}/settings.php
   rm ${ABS_SITE_PATH}/settings2.php
-  URL0=`echo $HOSTNAME | sed 's|,.*||g' | sed "s|'||g"`
-  URL=`echo $HOSTNAME | sed 's|,| |g' | sed 's|http[s]*://||g'`
   chmod 777 ${ABS_CONFIG_PATH}/sites.php
-  for f in ${URL}
+  for f in ${URL_SETTING}
   do
     echo -n "\$sites[" >> ${ABS_CONFIG_PATH}/sites.php
     echo -n ${f}  >> ${ABS_CONFIG_PATH}/sites.php
@@ -418,12 +416,11 @@ phase_2() {
   else
     PROFIL="ctm_intranet"
   fi
-  URL0=`echo $HOSTNAME | sed 's|,.*||g' | sed 's|http[s]*://||g' | sed "s|'||g" | sed "s|/.*||g"`
   cd ${ABS_SITE_PATH}
-  ${ABS_DRUSH_PATH}/drush site-install $PROFIL --root="${ABS_DOCUMENT_ROOT}" -y --account-name="${ADMIN_NAME}" --account-mail="webmaster@${URL0}" --site-mail="no-reply@${URL0}" --site-name="${SITE_NAME}" --sites-subdir="${ABS_SITE_PATH}" --db-url="${DATABASE}" ctm_commun_form.authentication_use="${MOCK}" install_configure_form.update_status_module='array(FALSE,FALSE)' install_configure_form.site_default_country='CH' install_configure_form.date_default_timezone='Europe/Zurich'
-  ${ABS_DRUSH_PATH}/drush ctm_queue
+  ${ABS_SCRIPTS_PATH}/drush site-install $PROFIL -y --account-name="${ADMIN_NAME}" --account-mail="webmaster@${HOST0}" --site-mail="no-reply@${HOST0}" --site-name="${SITE_NAME}" --sites-subdir="${DIR_NAME}" --db-url="${DATABASE}" ctm_commun_form.authentication_use="${MOCK}" install_configure_form.update_status_module='array(FALSE,FALSE)' install_configure_form.site_default_country='CH' install_configure_form.date_default_timezone='Europe/Zurich'
+  ${ABS_SCRIPTS_PATH}/drush @${SITE_NAME} ctm_queue
   if [ $ENVI = 'dev' ]; then
-    ${ABS_DRUSH_PATH}/drush ctm_tools devel
+    ${ABS_SCRIPTS_PATH}/drush @${SITE_NAME} ctm_tools devel
     DUMP=true
     dump
   fi
@@ -576,7 +573,7 @@ dump() {
     fi
     cd ${ABS_SITE_PATH}
     file=`date +%y%m%d_%H%M%S`
-    ${ABS_DRUSH_PATH}/drush sql-dump > ${ABS_DUMP_PATH}/${SITE_NAME}_${file}.sql
+    ${ABS_SCRIPTS_PATH}/drush @${SITE_NAME} sql-dump > ${ABS_DUMP_PATH}/${SITE_NAME}_${file}.sql
     echo -e "dumping database...                                \e[32m\e[1m[ok]\e[0m";
   fi
 }
