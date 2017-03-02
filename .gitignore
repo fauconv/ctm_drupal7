@@ -4,11 +4,8 @@
 /config/parameters-site_*
 /config/site_*
 /config/sites.php
-/media/site_*
-/htdocs/media
+/htdocs/media/site_*
 /htdocs/sites/sites.php
-/scripts/**/node_modules/
-/scripts/**/bower_components/
 .idea
 
 /nbproject/*
