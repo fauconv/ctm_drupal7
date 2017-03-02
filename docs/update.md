@@ -1,23 +1,19 @@
- Mise à jour d'une industrialisation Drupal
-===========================================
-Ce document décrit comment faire une mise a jour d'un site existant et déja
-installé en prod sur une machine de dev.
+Update of a CTM farm
+====================
 
-Une ferme (distribution / core drupal) peut contenir plusieurs site. C'est
-toujours une ferme complète qui est mise à jour. Il n est pas possible
-de mettre à jour uniquement 1 site dans une ferme contenant plusieurs sites.
+This document present how to update an existing farm in development, staging, or production.
+A farm is a mono or multi-site with only 1 drupal core.
+In a multi-site configuration it is not possible to update only one site.
 
-1. Récupération des fichiers
------------------------------
-  - Récupérer les fichiers dans le scm du projet existant
-    (`git pull` ou `svn update`)
+1. In development
+-----------------
 
-2. Compilation
----------------
-  -  Dans le répertpore scripts lancez la commande :
-    `./build.sh *site_ref*`
+  - take files from the project SCM (`git pull` ou `svn update`)
+  - Launch `deploy.sh -u` from script directory
 
-3. Mise à jour
----------------
-  - Lancez la commande :
-    `deploy.sh -u`
+
+2. In production
+----------------
+  - place the .tgz file in the root directory of the project (where there are www, config, and scripts directory)
+  - Launch `deploy.sh -z <nom_du_fichier_zip>` from script directory
+

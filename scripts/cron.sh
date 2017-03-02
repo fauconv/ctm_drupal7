@@ -4,22 +4,29 @@
 #+----------------------------------------------------------------+
 #| version : VERSION_SCRIPT                                       |
 #+----------------------------------------------------------------+
-VERSION_SCRIPT="1.0.0"
-ABSOLUTE_PATH=$(cd `dirname "${BASH_SOURCE[0]}"` && pwd)/`basename "${BASH_SOURCE[0]}"`
-BASEPATH=`dirname ${ABSOLUTE_PATH}`
-BASEPATH=`dirname ${BASEPATH}`
-HTDOCS="htdocs"
-HTDOCS_PATH="${BASEPATH}/${HTDOCS}"
-SITE_PATH="${HTDOCS_PATH}/sites"
 
-cd ${SITE_PATH}
+#CTM paths
+SCRIPT_NAME=$(basename $0)
+ABS_SCRIPT_PATH=$(dirname `readlink -e $0`);
+if [ "$ABS_SCRIPT_PATH" = "" ]; then
+  ABS_SCRIPT_PATH=$(cd `dirname "${BASH_SOURCE[0]}"` && pwd)
+fi
+if [ ! -f "${ABS_SCRIPT_PATH}/${SOURCE_PATH}/${SOURCE_SCRIPT}" ]; then
+  echo ""
+  echo -e "\e[31m\e[1mCTM is not correctly installed\e[0m"
+  echo ""
+  exit 1
+fi
+source ${ABS_SCRIPT_PATH}/${SOURCE_PATH}/${SOURCE_SCRIPT}
+
+cd ${ABS_SITES_PATH}
 
 for D in `find "." -type d`
 do
   NAME=`echo $D | sed 's|\./||g'`
   if [ "${NAME}" != "default" -a "${NAME}" != "." -a "${NAME}" != ".." -a "${NAME}" != "all" ]; then
-    if [ -e ${CONFIG_PATH}/settings-${NAME}.php ]; then
-      cd ${SITE_PATH}/${NAME};drush cr;
+    if [ -e ${ABS_CONFIG_PATH}/settings-${NAME}.php ]; then
+      cd ${ABS_SITES_PATH}/${NAME};${ABS_DRUSH_PATH}/drush cr --root="${ABS_DOCUMENT_ROOT}";
     fi
   fi
 done

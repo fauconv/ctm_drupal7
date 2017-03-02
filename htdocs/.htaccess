@@ -140,10 +140,9 @@ DirectoryIndex index.php index.html index.htm
   RewriteCond %{REQUEST_FILENAME} -d [OR]
   RewriteCond %{REQUEST_URI} =/favicon.ico
   RewriteRule .* - [L]
-  
-  # uncomment the 2 lines if you use apache alias
-  #RewriteCond %{REQUEST_URI} ^/([^/]*)/(.*)$
-  #RewriteRule ^(.*)$ /%1/index.php?q=$1 [QSA,L]
+
+  #Do not remove below tag
+  #CTM_MANAGER_TAG
 
   RewriteRule ^ index.php [L]
 

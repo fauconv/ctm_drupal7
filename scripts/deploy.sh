@@ -1,34 +1,29 @@
 #!/bin/bash
-#+---------------------------------------------------+
-#| Batch to install/deploy/update Drupal             |
-#+---------------------------------------------------+
-#| version : VERSION_SCRIPT                          |
-#+---------------------------------------------------+
-VERSION_SCRIPT="1.0.0"
-ABSOLUTE_PATH=$(cd `dirname "${BASH_SOURCE[0]}"` && pwd)/`basename "${BASH_SOURCE[0]}"`
-BASEPATH=`dirname ${ABSOLUTE_PATH}`
-BASEPATH=`dirname ${BASEPATH}`
-CONFIG_PATH="${BASEPATH}/config"
-SCRIPT_PATH="${BASEPATH}/scripts"
-HTDOCS="htdocs"
-HTDOCS_PATH="${BASEPATH}/${HTDOCS}"
-HTDOCS_PATH=$(cygpath -w ${HTDOCS_PATH})
-SITE_PATH="${HTDOCS_PATH}/sites"
-MEDIA_PATH="${BASEPATH}/media"
-DUMP_DIR="${BASEPATH}/dump"
-SITE_PREFIX="site_"
-CHMOD_MEDIA="770"
-CHMOD_CODE="550"
-CHMOD_MEDIA_FILE="660"
-CHMOD_CODE_FILE="440"
+#+-----------------------------------------------------------+
+#|                                                           |
+#| CTM Manager                                               |
+#|                                                           |
+#| Batch to Manage the entire multi-site/farm/factory/project|
+#|                                                           |
+#+-----------------------------------------------------------+
+#| version : VERSION_SCRIPT                                  |
+#+-----------------------------------------------------------+
 
-# Site iparameters
+#
+# const
+#
+SOURCE_PATH='ctm'
+SOURCE_SCRIPT='ctm_path'
+SOURCE_URL='ctm_url'
+
+
+# Site parameters
 HOSTNAME=
 ENVI="prod"
 DIR_NAME=
 SITE_NAME=
-SITE_DIR=
-MEDIA_DIR=
+ABS_SITE_PATH=
+ABS_MEDIA_PATH=
 CHOWN=
 ZIP=
 DATABASE=
@@ -41,8 +36,23 @@ PHASE="0"
 ALT=
 DUMP=false
 
+#CTM paths
+SCRIPT_NAME=$(basename $0)
+ABS_SCRIPT_PATH=$(dirname `readlink -e $0`);
+if [ "$ABS_SCRIPT_PATH" = "" ]; then
+  ABS_SCRIPT_PATH=$(cd `dirname "${BASH_SOURCE[0]}"` && pwd)
+fi
+if [ ! -f "${ABS_SCRIPT_PATH}/${SOURCE_PATH}/${SOURCE_SCRIPT}" ]; then
+  echo ""
+  echo -e "\e[31m\e[1mCTM is not correctly installed\e[0m"
+  echo ""
+  exit 1
+fi
+source ${ABS_SCRIPT_PATH}/${SOURCE_PATH}/${SOURCE_SCRIPT}
+cd ${ABS_DCF_PATH}
+
 #
-#affichage de l aide
+# display help
 #
 printHelp(){
    echo ""
@@ -78,9 +88,9 @@ printHelp(){
    echo " -x                                                       : mean 'internet site', else 'intranet site'"
    echo ""
    echo ""
-   echo "= Using ctm.conf :"
-   echo "=================="
-   echo "You can use a configuration file with name \"${SITE_PREFIX}<site-ref>.conf\" placed in the directory 'config'. File synthax is :"
+   echo "= Using configuration file :"
+   echo "============================"
+   echo "You can use a configuration file with name \"${ABS_CONFIG_PATH}/${SITE_PREFIX}<site-ref>${CONF_EXT}\". File synthax is :"
    echo ""
    echo " HOSTNAME=\"'url','url2','url3'\""
    echo " MOCK=1"
@@ -135,6 +145,7 @@ getoptions(){
       -h)
         shift;
         HOSTNAME="$1"
+        source ${ABS_SCRIPT_PATH}/${SOURCE_PATH}/${SOURCE_URL}
         ;;
       -l)
         LIST=true
@@ -172,8 +183,10 @@ getoptions(){
       *)
         SITE_NAME=$1
         DIR_NAME=${SITE_PREFIX}$1
-        SITE_DIR=${SITE_PATH}/${DIR_NAME}
-        MEDIA_DIR=${MEDIA_PATH}/${DIR_NAME}
+        SITE_PATH=${SITES_PATH}/${DIR_NAME}
+        MEDIA_PATH=${MEDIA_PATH}/${DIR_NAME}
+        ABS_SITE_PATH=${ABS_SITES_PATH}/${DIR_NAME}
+        ABS_MEDIA_PATH=${ABS_MEDIAS_PATH}/${DIR_NAME}
         ;;
     esac
     shift
@@ -197,7 +210,7 @@ validate_url() {
 # check site exist
 #
 validate_exist() {
-  if [ -e ${CONFIG_PATH}/settings-${DIR_NAME}.php ]; then
+  if [ -e ${ABS_CONFIG_PATH}/settings-${DIR_NAME}.php ]; then
     echo -e "This site is already installed                                        \e[31m\e[1m[fail]\e[0m"
     exit 1
   fi
@@ -246,14 +259,25 @@ validate_cmd() {
   fi
 }
 
+
+#
+# create drush alias for the site
+#
+function create_drush_alias {
+  cd $ABS_DRUSH_ALIAS
+  echo "<?php" > ${SITE_NAME}.alias.drushrc.php
+  echo "\$options['uri'] = '${URL0}';" >> ${SITE_NAME}.alias.drushrc.php
+  echo "\$options['root'] = '${ABS_DOCUMENT_ROOT}';" >> ${SITE_NAME}.alias.drushrc.php
+}
+
 #
 # remove existing file
 #
 remove_site() {
   if [ $REMOVE = true ]; then
-    if [ -e ${CONFIG_PATH}/settings-${DIR_NAME}.php ]; then
-      chmod -R 777 ${CONFIG_PATH}
-      rm ${CONFIG_PATH}/settings-${DIR_NAME}.php ${CONFIG_PATH}/mock-${DIR_NAME}.xml ${CONFIG_PATH}/masquerade-${DIR_NAME}.xml
+    if [ -e ${ABS_CONFIG_PATH}/settings-${DIR_NAME}.php ]; then
+      chmod -R 777 ${ABS_CONFIG_PATH}
+      rm ${ABS_CONFIG_PATH}/settings-${DIR_NAME}.php ${ABS_CONFIG_PATH}/mock-${DIR_NAME}.xml ${ABS_CONFIG_PATH}/masquerade-${DIR_NAME}.xml
       echo -e "Removing ${SITE_NAME}...                                \e[32m\e[1m[ok]\e[0m"
     fi
   fi
@@ -263,11 +287,11 @@ remove_site() {
 #read conf files
 #
 read_conf() {
-  if [ -e ${CONFIG_PATH}/${DIR_NAME}.conf ]; then
-    source ${CONFIG_PATH}/${DIR_NAME}.conf
+  if [ -e ${ABS_CONFIG_PATH}/${DIR_NAME}${CONF_EXT} ]; then
+    source ${ABS_CONFIG_PATH}/${DIR_NAME}${CONF_EXT}
   fi
-  if [ -e ${SITE_DIR}/${DIR_NAME}.conf.php ]; then
-    source ${SITE_DIR}/${DIR_NAME}.conf.php
+  if [ -e ${ABS_SITE_DIR}/${DIR_NAME}.conf.php ]; then
+    source ${ABS_SITE_DIR}/${DIR_NAME}.conf.php
   fi
 }
 
@@ -280,41 +304,13 @@ validate_os() {
     WIN=`echo ${OS} | grep -i Windows`
     if [ ! -z $WIN ]; then
       echo "You are on Windows"
-      IS_WINDOW=true
-      if [ ! -e "${SITE_PATH}/sites.php" ]; then
-        echo -e "You must create symlink before launch this command :                                                 \e[31m\e[1m[fail]\e[0m"
-        echo ""
-        echo "in directory : ${SITE_PATH} :"
-        echo "     use : mklink sites.php ..\..\config\sites.php"
-        echo "in directory : ${HTDOCS_PATH} :"
-        echo "     use : mklink /D media ..\media"
-        echo ""
-        exit 1
-      else
-        if [ ! -e "${HTDOCS_PATH}/media" ]; then
-          echo -e "You must create symlink before launch this command :                                                 \e[31m\e[1m[fail]\e[0m"
-          echo "in directory : ${HTDOCS_PATH} :"
-          echo "   use : mklink /D media ..\media"
-          echo ""
-          exit 1
-        fi
-      fi
     fi
-  fi
-  if [ ! -e "${SITE_PATH}/sites.php" ]; then
-    chmod 777 ${SITE_PATH}
-    cd ${SITE_PATH};ln -s ../../config/sites.php sites.php
-    chmod ${CHMOD_CODE} ${SITE_PATH}
-  fi
-  if [ ! -e "${HTDOCS_PATH}/media" ]; then
-    chmod 777 ${HTDOCS_PATH}
-    cd ${HTDOCS_PATH};ln -s ../media media
-    chmod ${CHMOD_CODE} ${HTDOCS_PATH}
   fi
 }
 
 #
 # adapt chmod right to environment
+#
 check_right() {
   if [ $ENVI = "dev" ]; then
     CHMOD_MEDIA="777"
@@ -322,6 +318,27 @@ check_right() {
     CHMOD_MEDIA_FILE="666"
     CHMOD_CODE_FILE="666"
   fi
+}
+
+#
+# create htaccess for alias
+#
+function create_htaccess {
+  cd ${ABS_DOCUMENT_ROOT}
+  for f in ${URL_ALIAS}
+  do
+    f=${f}/
+    ALIAS=`echo ${f} | sed "s|'||ig" | sed 's|[^/]*/||i' | sed 's|/$||g'`
+    if [ ! "${ALIAS}" = "" ]; then
+      FOUND=`grep "/${ALIAS}/index.php" .htaccess`
+      if [ "$FOUND" = "" ]; then
+        TEXT="DCF_MANAGER_TAG\nRewriteCond %{REQUEST_URI} ^/${ALIAS}/\nRewriteRule ^ /${ALIAS}/index.php [L]\n"
+        sed "s|DCF_MANAGER_TAG|${TEXT}|" .htaccess > .htaccess2
+        rm .htaccess
+        mv .htaccess2 .htaccess
+      fi
+    fi
+  done
 }
 
 #
@@ -337,53 +354,56 @@ phase_0() {
 # phase 1 (init dir and settings)
 #
 phase_1() {
-  if [ ! -d "${SITE_DIR}" ]; then
+  if [ ! -d "${ABS_SITE_PATH}" ]; then
     echo "Phase 1 : Create site..."
-    chmod 777 $SITE_PATH $MEDIA_PATH
-    cp -r ${SITE_PATH}/default $SITE_DIR
-    cp -R  ${MEDIA_PATH}/default $MEDIA_DIR
-    chmod -R 777 $SITE_DIR $MEDIA_DIR
-    rm ${SITE_DIR}/header.settings.php
+    chmod 777 $ABS_SITES_PATH $MEDIA_PATH
+    cp -r ${ABS_SITES_PATH}/default ${ABS_SITE_PATH}
+    cp -R  ${ABS_MEDIAS_PATH}/default ${ABS_MEDIA_PATH}
+    chmod -R 777 ${ABS_SITE_PATH} ${ABS_MEDIA_PATH}
+    rm ${ABS_SITE_PATH}/header.settings.php
     chmod $CHMOD_CODE $SITE_PATH $MEDIA_PATH
     echo -e "Phase 1 : Create site...                                                        \e[32m\e[1m[ok]\e[0m"
   else
     echo "Phase 1 : Reinitializing installation of site..."
-    chmod -R 777 $SITE_DIR
-    chmod 777 $MEDIA_PATH
-    if [ ! -d $MEDIA_DIR ]; then
-      cp -R  ${MEDIA_PATH}/default $MEDIA_DIR
+    chmod -R 777 ${ABS_SITE_PATH}
+    chmod 777 ${ABS_MEDIAS_PATH}
+    if [ ! -d ${ABS_MEDIA_PATH} ]; then
+      cp -R  ${ABS_MEDIAS_PATH}/default ${ABS_MEDIA_PATH}
     fi
-    chmod -R 777 $MEDIA_DIR
-    grep -B 10000 "====== CUT HERE ======" ${SITE_PATH}/default/settings.php | grep -v "====== CUT HERE ======" > ${SITE_DIR}/settings2.php
-    chmod 777 ${SITE_DIR}/settings2.php
-    grep -A 10000 "====== CUT HERE ======" ${SITE_DIR}/settings.php >> ${SITE_DIR}/settings2.php
-    mv ${SITE_DIR}/settings.php ${SITE_DIR}/settings.php.orig
-    mv ${SITE_DIR}/settings2.php ${SITE_DIR}/settings.php
+    chmod -R 777 ${ABS_MEDIA_PATH}
+    grep -B 10000 "====== CUT HERE ======" ${ABS_SITES_PATH}/default/settings.php | grep -v "====== CUT HERE ======" > ${ABS_SITE_PATH}/settings2.php
+    chmod 777 ${ABS_SITE_PATH}/settings2.php
+    grep -A 10000 "====== CUT HERE ======" ${ABS_SITES_PATH}/settings.php >> ${ABS_SITE_PATH}/settings2.php
+    mv ${ABS_SITE_PATH}/settings.php ${ABS_SITE_PATH}/settings.php.orig
+    mv ${ABS_SITE_PATH}/settings2.php ${ABS_SITE_PATH}/settings.php
     echo -e "Phase 1 : Reinitializing installalation of site...                                \e[32m\e[1m[ok]\e[0m"
   fi
   echo "Phase 1 : Configuring site..."
-  chmod -R 777 $MEDIA_DIR $SITE_DIR ${SITE_PATH}/default
+  chmod -R 777 ${ABS_MEDIA_PATH} ${ABS_SITE_PATH} ${ABS_SITES_PATH}/default
   PATTERN="base_root_list'] = array.*\$"
   RESULT="base_root_list'] = array\(${HOSTNAME}\);"
-  sed "s|${PATTERN}|${RESULT}|1" ${SITE_DIR}/settings.php > ${SITE_DIR}/settings2.php
-  rm ${SITE_DIR}/settings.php
+  sed "s|${PATTERN}|${RESULT}|1" ${ABS_SITE_PATH}/settings.php > ${ABS_SITE_PATH}/settings2.php
+  rm ${ABS_SITE_PATH}/settings.php
   PATTERN="'environnement'] = '.*\$"
   RESULT="'environnement'] = '${ENVI}';"
-  sed "s|${PATTERN}|${RESULT}|1" ${SITE_DIR}/settings2.php > ${SITE_DIR}/settings.php
-  rm ${SITE_DIR}/settings2.php
+  sed "s|${PATTERN}|${RESULT}|1" ${ABS_SITE_PATH}/settings2.php > ${ABS_SITE_PATH}/settings.php
+  rm ${ABS_SITE_PATH}/settings2.php
+  URL0=`echo $HOSTNAME | sed 's|,.*||g' | sed "s|'||g"`
   URL=`echo $HOSTNAME | sed 's|,| |g' | sed 's|http[s]*://||g'`
-  chmod 777 ${CONFIG_PATH}/sites.php
+  chmod 777 ${ABS_CONFIG_PATH}/sites.php
   for f in ${URL}
   do
-    echo -n "\$sites[" >> ${CONFIG_PATH}/sites.php
-    echo -n ${f}  >> ${CONFIG_PATH}/sites.php
-    echo -n "] = '" >> ${CONFIG_PATH}/sites.php
-    echo -n ${DIR_NAME} >> ${CONFIG_PATH}/sites.php
-    echo "';" >> ${CONFIG_PATH}/sites.php
+    echo -n "\$sites[" >> ${ABS_CONFIG_PATH}/sites.php
+    echo -n ${f}  >> ${ABS_CONFIG_PATH}/sites.php
+    echo -n "] = '" >> ${ABS_CONFIG_PATH}/sites.php
+    echo -n ${DIR_NAME} >> ${ABS_CONFIG_PATH}/sites.php
+    echo "';" >> ${ABS_CONFIG_PATH}/sites.php
   done
-  chmod $CHMOD_CODE_FILE ${CONFIG_PATH}/sites.php
-  cp ${SITE_DIR}/settings.php ${SITE_PATH}/default/default.settings.php
-  chmod 777 ${SITE_PATH}/default/default.settings.php
+  create_drush_alias
+  create_htaccess
+  chmod $CHMOD_CODE_FILE ${ABS_CONFIG_PATH}/sites.php
+  cp ${ABS_SITE_PATH}/settings.php ${ABS_SITES_PATH}/default/default.settings.php
+  chmod 777 ${ABS_SITES_PATH}/default/default.settings.php
   echo -e "Phase 1 : Configuring site...                                                   \e[32m\e[1m[ok]\e[0m"
 }
 
@@ -399,18 +419,18 @@ phase_2() {
     PROFIL="ctm_intranet"
   fi
   URL0=`echo $HOSTNAME | sed 's|,.*||g' | sed 's|http[s]*://||g' | sed "s|'||g" | sed "s|/.*||g"`
-  cd ${SITE_DIR}
-  drush site-install $PROFIL -y --account-name="developer" --account-mail="webmaster@${URL0}" --site-mail="no-reply@${URL0}" --site-name="${SITE_NAME}" --sites-subdir="${DIR_NAME}" --db-url="${DATABASE}" ctm_commun_form.authentication_use="${MOCK}" install_configure_form.update_status_module='array(FALSE,FALSE)' install_configure_form.site_default_country='CH' install_configure_form.date_default_timezone='Europe/Zurich'
-  drush ctm_queue
+  cd ${ABS_SITE_PATH}
+  ${ABS_DRUSH_PATH}/drush site-install $PROFIL --root="${ABS_DOCUMENT_ROOT}" -y --account-name="${ADMIN_NAME}" --account-mail="webmaster@${URL0}" --site-mail="no-reply@${URL0}" --site-name="${SITE_NAME}" --sites-subdir="${ABS_SITE_PATH}" --db-url="${DATABASE}" ctm_commun_form.authentication_use="${MOCK}" install_configure_form.update_status_module='array(FALSE,FALSE)' install_configure_form.site_default_country='CH' install_configure_form.date_default_timezone='Europe/Zurich'
+  ${ABS_DRUSH_PATH}/drush ctm_queue
   if [ $ENVI = 'dev' ]; then
-    drush ctm_tools devel
+    ${ABS_DRUSH_PATH}/drush ctm_tools devel
     DUMP=true
     dump
   fi
 
-  chmod -R 777 ${SITE_DIR}
-  echo "EXTERNAL=${EXTERNAL}" > ${SITE_DIR}/${DIR_NAME}.conf.php
-  cd ${SCRIPT_PATH}
+  chmod -R 777 ${ABS_SITE_PATH}
+  echo "EXTERNAL=${EXTERNAL}" > ${ABS_SITE_PATH}/${DIR_NAME}.conf.php
+  cd ${ABS_SCRIPTS_PATH}
   echo -e "Phase 2 : Installing site...                                                    \e[32m\e[1m[ok]\e[0m"
 }
 
@@ -420,74 +440,30 @@ phase_2() {
 #
 phase_3() {
   echo "Phase 3 : Cutting settings..."
-  chmod -R 777 ${SITE_PATH}/default ${SITE_DIR}
-  chmod 777 ${CONFIG_PATH}
-  rm ${SITE_PATH}/default/default.settings.php
-  chmod -R $CHMOD_CODE ${SITE_PATH}/default
-  grep -B 10000 "====== CUT HERE ======" ${SITE_DIR}/settings.php | grep -v "====== CUT HERE ======" > ${CONFIG_PATH}/settings-${DIR_NAME}.php
-  cp ${SITE_PATH}/default/header.settings.php ${SITE_DIR}/settings2.php
-  chmod 777 ${SITE_DIR}/settings2.php
-  grep -A 10000 "====== CUT HERE ======" ${SITE_DIR}/settings.php >> ${SITE_DIR}/settings2.php
-  rm -f ${SITE_DIR}/settings.php
-  mv ${SITE_DIR}/settings2.php ${SITE_DIR}/settings.php
-  if [ -e ${SITE_DIR}/settings.php.orig ]; then
-    rm -f ${SITE_DIR}/settings.php
-    mv ${SITE_DIR}/settings.php.orig ${SITE_DIR}/settings.php
+  chmod -R 777 ${ABS_SITES_PATH}/default ${ABS_SITE_PATH}
+  chmod 777 ${ABS_CONFIG_PATH}
+  rm ${ABS_SITES_PATH}/default/default.settings.php
+  chmod -R $CHMOD_CODE ${ABS_SITES_PATH}/default
+  grep -B 10000 "====== CUT HERE ======" ${ABS_SITE_PATH}/settings.php | grep -v "====== CUT HERE ======" > ${ABS_CONFIG_PATH}/settings-${DIR_NAME}.php
+  cp ${ABS_SITES_PATH}/default/header.settings.php ${ABS_SITE_PATH}/settings2.php
+  chmod 777 ${ABS_SITE_PATH}/settings2.php
+  grep -A 10000 "====== CUT HERE ======" ${ABS_SITE_PATH}/settings.php >> ${ABS_SITE_PATH}/settings2.php
+  rm -f ${ABS_SITE_PATH}/settings.php
+  mv ${ABS_SITE_PATH}/settings2.php ${ABS_SITE_PATH}/settings.php
+  if [ -e ${ABS_SITE_PATH}/settings.php.orig ]; then
+    rm -f ${ABS_SITE_PATH}/settings.php
+    mv ${ABS_SITE_PATH}/settings.php.orig ${ABS_SITE_PATH}/settings.php
   fi
-  cp ${CONFIG_PATH}/example.mock-default.xml ${CONFIG_PATH}/mock-${DIR_NAME}.xml
-  cp ${CONFIG_PATH}/example.masquerade-default.xml ${CONFIG_PATH}/masquerade-${DIR_NAME}.xml
+  cp ${ABS_CONFIG_PATH}/example.mock-default.xml ${ABS_CONFIG_PATH}/mock-${DIR_NAME}.xml
+  cp ${ABS_CONFIG_PATH}/example.masquerade-default.xml ${ABS_CONFIG_PATH}/masquerade-${DIR_NAME}.xml
   # compilation is incomming so stay in 777
-  chmod 777 -R ${SITE_DIR}
-  chmod $CHMOD_CODE_FILE ${SITE_DIR}/settings.php
-  chmod -R $CHMOD_CODE ${CONFIG_PATH}
+  chmod 777 -R ${ABS_SITE_PATH}
+  chmod $CHMOD_CODE_FILE ${ABS_SITE_PATH}/settings.php
+  chmod -R $CHMOD_CODE ${ABS_CONFIG_PATH}
   if [ "${CHOWN}" != "" ]; then
-    chown -R ${CHOWN} ${CONFIG_PATH} ${SITE_DIR} ${MEDIA_DIR}
+    chown -R ${CHOWN} ${ABS_CONFIG_PATH} ${ABS_SITE_PATH} ${ABS_MEDIA_PATH}
   fi
   echo -e "Phase 3 : Cutting settings...                                                   \e[32m\e[1m[ok]\e[0m"
-}
-
-#
-# unzip task
-#
-zip() {
-  if [ ! -z $ZIP ]; then
-    cd $BASEPATH
-    tar -xzf $ZIP
-    if [ -e directory.properties ]; then
-      source directory.properties
-      rm ${HTDOCS}
-      ln -s $DIR ${HTDOCS}
-      UPDATE=true
-      rm directory.properties
-      rm directory.properties
-    else
-      echo "${ZIP} is not a valid ctm package"
-      exit 1
-    fi
-  fi
-}
-
-#
-# update task
-#
-update() {
-  if [ $UPDATE = true ]; then
-    cd ${SITE_PATH}
-    file=`date +%y%m%d_%H%M%S`
-    for D in `find "." -type d`
-    do
-      NAME=`echo $D | sed 's|\./||g'`
-      if [ "${NAME}" != "default" -a "${NAME}" != "." -a "${NAME}" != ".." -a "${NAME}" != "all" ]; then
-        if [ -e ${CONFIG_PATH}/settings-${NAME}.php ]; then
-          echo "updating ${NAME} ...";
-          cd ${SITE_PATH}/${NAME}
-          drush sql-dump > ${DUMP_DIR}/${NAME}_${file}.sql
-          drush ctm_update -y;
-          echo -e "updating ${NAME} ...                                \e[32m\e[1m[ok]\e[0m";
-        fi
-      fi
-    done
-  fi
 }
 
 #
@@ -497,14 +473,14 @@ list() {
   if [ $LIST = true ]; then
     echo "= Not installed sites :"
     echo "======================="
-    cd ${SITE_PATH}
+    cd ${ABS_SITES_PATH}
     for D in `find . -maxdepth 1 -type d`
     do
       NAME=`echo $D | sed 's|\./||g'`
       if [ "${NAME}" != "default" -a "${NAME}" != "." -a "${NAME}" != ".." -a "${NAME}" != "all" ]; then
-        if [ ! -e "${CONFIG_PATH}/settings-${NAME}.php" ]; then
+        if [ ! -e "${ABS_CONFIG_PATH}/settings-${NAME}.php" ]; then
           echo -n " - ${NAME}" | sed 's|site_||'
-          if [ -e ${CONFIG_PATH}/${NAME}.conf ]; then
+          if [ -e ${ABS_CONFIG_PATH}/${NAME}.conf ]; then
             echo " (Config file present)"
           else
             echo ""
@@ -519,9 +495,9 @@ list() {
     do
       NAME=`echo $D | sed 's|\./||g'`
       if [ "${NAME}" != "default" -a "${NAME}" != "." -a "${NAME}" != ".." -a "${NAME}" != "all" ]; then
-        if [ -e "${CONFIG_PATH}/settings-${NAME}.php" ]; then
+        if [ -e "${ABS_CONFIG_PATH}/settings-${NAME}.php" ]; then
           echo " - ${NAME}" | sed 's|site_||'
-          if [ -e ${CONFIG_PATH}/${NAME}.conf ]; then
+          if [ -e ${ABS_CONFIG_PATH}/${NAME}.conf ]; then
             echo " (Config file present)"
           else
             echo ""
@@ -536,10 +512,10 @@ list() {
 #
 #
 create_sites() {
-  if [ ! -e "${CONFIG_PATH}/sites.php" ]; then
-    chmod 777 ${CONFIG_PATH}
-    echo "<?php" > ${CONFIG_PATH}/sites.php
-    chmod ${CHMOD_CODE} ${CONFIG_PATH}
+  if [ ! -e "${ABS_CONFIG_PATH}/sites.php" ]; then
+    chmod 777 ${ABS_CONFIG_PATH}
+    echo "<?php" > ${ABS_CONFIG_PATH}/sites.php
+    chmod ${CHMOD_CODE} ${ABS_CONFIG_PATH}
   fi
 }
 
@@ -550,27 +526,27 @@ alt_conf() {
   if [ ! -z ${ALT} ]; then
     DIR_NAME_ORIG=${DIR_NAME}
     DIR_NAME=${DIR_NAME}${ALT}
-    SITE_DIR_ORIG=${SITE_DIR}
-    SITE_DIR=${SITE_DIR}${ALT}
-    MEDIA_DIR_ORIG=${MEDIA_DIR}
-    MEDIA_DIR=${MEDIA_DIR}${ALT}
+    ABS_SITE_ORIG=${ABS_SITE_PATH}
+    ABS_SITE_PATH=${ABS_SITE_PATH}${ALT}
+    ABS_MEDIA_ORIG=${ABS_MEDIA_PATH}
+    ABS_MEDIA_PATH=${ABS_MEDIA_PATH}${ALT}
     echo "creating alteration from  ${DIR_NAME_ORIG} to ${DIR_NAME} ...";
-    if [ ! -e ${SITE_DIR_ORIG} ]; then
+    if [ ! -e ${ABS_SITE_ORIG} ]; then
       echo -e "You can not create alteration of an non existing site :                                                 \e[31m\e[1m[fail]\e[0m"
       exit 1
     fi
-    if [ -e ${SITE_DIR}/modules ]; then
+    if [ -e ${ABS_SITE_PATH}/modules ]; then
       echo -e "alteration exist...                                \e[32m\e[1m[ok]\e[0m";
       return
     fi
-    if [ ! -e ${SITE_DIR} ]; then
-      chmod 777 ${SITE_PATH}
-      mkdir ${SITE_DIR}
-      cp ${SITE_DIR_ORIG}/settings.php ${SITE_DIR}
-      cp ${SITE_DIR_ORIG}/${DIR_NAME_ORIG}.conf.php ${SITE_DIR}/${DIR_NAME}.conf.php
+    if [ ! -e ${ABS_SITE_PATH} ]; then
+      chmod 777 ${ABS_SITES_PATH}
+      mkdir ${ABS_SITE_PATH}
+      cp ${ABS_SITE_ORIG}/settings.php ${ABS_SITE_PATH}
+      cp ${ABS_SITE_ORIG}/${DIR_NAME_ORIG}.conf.php ${ABS_SITE_PATH}/${DIR_NAME}.conf.php
     fi
     if [ ${IS_WINDOW} = true ]; then
-      echo "You must create symlink manualy  in ${SITE_DIR} :"
+      echo "You must create symlink manualy  in ${ABS_SITE_PATH} :"
       echo "   mklink /D libraries ..\\${DIR_NAME_ORIG}\\libraries"
       echo "   mklink /D modules ..\\${DIR_NAME_ORIG}\\modules"
       echo "   mklink /D media_export ..\\${DIR_NAME_ORIG}\\media_export"
@@ -578,7 +554,7 @@ alt_conf() {
       echo "   mklink /D translations ..\\${DIR_NAME_ORIG}\\translations"
       exit 1
     fi
-    cd ${SITE_DIR}
+    cd ${ABS_SITE_PATH}
     ln -s  ../${DIR_NAME_ORIG}/libraries
     ln -s  ../${DIR_NAME_ORIG}/modules
     ln -s  ../${DIR_NAME_ORIG}/media_export
@@ -595,12 +571,12 @@ dump() {
   if [ ${DUMP} = true ]; then
     echo -e "dumping database...";
     if [ ! -e $DUMP_DIR ]; then
-      chmod +w $BASEPATH
-      mkdir $DUMP_DIR
+      chmod +w $ABS_ROOT_PATH
+      mkdir $ABS_DUMP_PATH
     fi
-    cd ${SITE_DIR}
+    cd ${ABS_SITE_PATH}
     file=`date +%y%m%d_%H%M%S`
-    drush sql-dump > ${DUMP_DIR}/${SITE_NAME}_${file}.sql
+    ${ABS_DRUSH_PATH}/drush sql-dump > ${ABS_DUMP_PATH}/${SITE_NAME}_${file}.sql
     echo -e "dumping database...                                \e[32m\e[1m[ok]\e[0m";
   fi
 }
