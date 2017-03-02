@@ -184,7 +184,7 @@ getoptions(){
         SITE_NAME=$1
         DIR_NAME=${SITE_PREFIX}$1
         SITE_PATH=${SITES_PATH}/${DIR_NAME}
-        MEDIA_PATH=${MEDIA_PATH}/${DIR_NAME}
+        MEDIA_PATH=${MEDIAS_PATH}/${DIR_NAME}
         ABS_SITE_PATH=${ABS_SITES_PATH}/${DIR_NAME}
         ABS_MEDIA_PATH=${ABS_MEDIAS_PATH}/${DIR_NAME}
         ;;
@@ -356,12 +356,12 @@ phase_0() {
 phase_1() {
   if [ ! -d "${ABS_SITE_PATH}" ]; then
     echo "Phase 1 : Create site..."
-    chmod 777 $ABS_SITES_PATH $MEDIA_PATH
+    chmod 777 $ABS_SITES_PATH $ABS_MEDIAS_PATH
     cp -r ${ABS_SITES_PATH}/default ${ABS_SITE_PATH}
     cp -R  ${ABS_MEDIAS_PATH}/default ${ABS_MEDIA_PATH}
     chmod -R 777 ${ABS_SITE_PATH} ${ABS_MEDIA_PATH}
     rm ${ABS_SITE_PATH}/header.settings.php
-    chmod $CHMOD_CODE $SITE_PATH $MEDIA_PATH
+    chmod $CHMOD_CODE $ABS_SITE_PATH $ABS_MEDIA_PATH
     echo -e "Phase 1 : Create site...                                                        \e[32m\e[1m[ok]\e[0m"
   else
     echo "Phase 1 : Reinitializing installation of site..."
@@ -611,8 +611,6 @@ if [ ! -z $SITE_NAME ]; then
   validate_exist
   phase_${PHASE}
 fi
-zip
-update
 list
 end=`date +%s`
 displaytime
