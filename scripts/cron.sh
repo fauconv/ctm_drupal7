@@ -26,7 +26,8 @@ do
   NAME=`echo $D | sed 's|\./||g'`
   if [ "${NAME}" != "default" -a "${NAME}" != "." -a "${NAME}" != ".." -a "${NAME}" != "all" ]; then
     if [ -e ${ABS_CONFIG_PATH}/settings-${NAME}.php ]; then
-      cd ${ABS_SITES_PATH}/${NAME};${ABS_DRUSH_PATH}/drush cr --root="${ABS_DOCUMENT_ROOT}";
+      ID=`echo $NAME  sed | sed 's|site_||g'`
+      ${ABS_SCRIPTS_PATH}/drush @$ID cr
     fi
   fi
 done

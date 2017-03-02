@@ -1,23 +1,25 @@
 {
     "name": "fauconv/ctm_drupal7",
+    "version": "1.0.0",
     "description": "Drupal 7 multi-site factory designed for services companies and developers",
     "type": "project",
+    "license": "GPL-3.0+",
+    "authors": [
+        {
+            "name": "FauconV",
+            "role": "Developer"
+        }
+    ],
     "config": {
-	"bin-dir": "scripts/vendor/bin",
-	"vendor-dir": "scripts/vendor",
-	"bin-compat": "full",
+    	"bin-dir": "scripts/vendor/bin",
+    	"vendor-dir": "scripts/vendor",
+    	"bin-compat": "full",
         "apcu-autoloader": true,
         "optimize-autoloader": true
     },
     "require": {
         "drush/drush": "~8.1"
     },
-    "license": "GPL-3.0+",
-    "authors": [
-        {
-            "name": "fauconv",
-            "email": "christian.vallebella@free.fr"
-        }
-    ],
+
     "minimum-stability": "dev"
 }
