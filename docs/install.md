@@ -2,7 +2,7 @@
 =================================================
 Ce document décrit comment installer une ferme et un site Drupal
 pour développement ou mise en recette.
- 
+
 Une ferme (distribution / core drupal) peut contenir plusieurs site. Pour
 installer un site il faut donc d'abord installer la ferme.Si la ferme existe
 déja vous pouvez passer à l'étape d'installation du site.
@@ -14,7 +14,7 @@ par site même si il n'y a qu'une seule ferme.
 1. Pré-requis
 --------------
   - Vous devez disposer d'un serveur apache avec PHP5.4 with opcache ou supérieur d'installé
-  - Vous devez disposer d'un serveur mysql 5.5 ou supérieur avec une base de 
+  - Vous devez disposer d'un serveur mysql 5.5 ou supérieur avec une base de
     données vide et d'un utilisateur capable d'accéder à cette base
   - pour windows vous devez avoir installer cygwin
 
@@ -125,11 +125,11 @@ par site même si il n'y a qu'une seule ferme.
 1. Installation
 ----------------
   (Sous windows utilisez cygwin)
-  - créez un fichier de configuration dans le répertoire "config" avec le nom
-  site_<site_ref>.conf et placer dedans les informations de configuration.
-  (lancez la commande `./deploy.sh` sans parametre pour plus d information sur
-   les éléments de configuration utilisable dans ce fichier)
-  - puis lancez la commande `./deploy.sh <site_ref>` dans le répertoire scripts
+  - créez les 2 fichier de configuration my_project.config.local.ini et
+    my_project.config.local.ini dans le répertoire config en prenant exemple
+    sur les fichiers d'exemple.
+  - puis lancez la commande `./project.sh site deploy my_project` dans le
+    répertoire script,.
 
   ATTENTION : durant l'installation les mots de passes pour les premiers
               utilisateurs (developer, administrator, et contributor) seront

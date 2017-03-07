@@ -50,7 +50,9 @@ function content_type_extras_preprocess_page(&$vars) {
   }
 
   elseif (!empty($vars['node'])) {
-    $hide_title = content_type_extras_get_setting('content_type_extras_title_hide', $vars['node']->type);
+    // Ran into an issue when using the Print module where the node type isn't set, throwing an error
+    // so we are checking to see if the node type is set first
+    $hide_title = isset($vars['node']->type) ? content_type_extras_get_setting('content_type_extras_title_hide', $vars['node']->type) : '';
     if ($hide_title) {
       $hide_title_css = content_type_extras_get_default('content_type_extras_title_hide_css');
       if ($hide_title_css) {
@@ -142,6 +144,8 @@ function content_type_extras_form_alter(&$form, &$form_state, $form_id) {
       $form['title']['#title'] = $title_label;
     }
 
+    $form['actions']['submit']['#value'] = content_type_extras_get_setting('content_type_extras_save_button', $type);
+
     $save_and_new = content_type_extras_get_setting('content_type_extras_save_and_new', $type);
     if (!empty($save_and_new)) {
       $form['actions']['save_and_new'] = array(
@@ -172,10 +176,26 @@ function content_type_extras_form_alter(&$form, &$form_state, $form_id) {
     if (!empty($preview)) {
       $form['actions']['preview']['#value']  = content_type_extras_get_setting('content_type_extras_preview_button', $type);
     }
+    elseif (isset($form['actions']['preview'])) {
+      unset($form['actions']['preview']);
+    }
 
     $cancel = content_type_extras_get_setting('content_type_extras_cancel', $type);
     if (!empty($cancel)) {
-      drupal_add_js(drupal_get_path('module', 'content_type_extras') . '/js/content_type_extras.cancel_button.js');
+      $cancel_hide_warning = content_type_extras_get_setting('content_type_extras_cancel_hide_warning', $type);
+      $cancel_location = content_type_extras_get_setting('content_type_extras_cancel_button_location', $type);
+      $location_path = content_type_extras_get_setting('content_type_extras_cancel_button_location_path', $type);
+
+      $form['#attached']['js'][] = drupal_get_path('module', 'content_type_extras') . '/js/content_type_extras.cancel_button.js';
+      $form['#attached']['js'][] = array(
+        'data' => array('content_type_extras' => array(
+          'hide_warning' => $cancel_hide_warning,
+          'cancel_location' => $cancel_location,
+          'location_path' => $location_path,
+        )),
+        'type' => 'setting',
+      );
+
       $form['actions']['cancel'] = array(
         '#type'        => 'button',
         '#value'       => t('Cancel'),
@@ -186,8 +206,9 @@ function content_type_extras_form_alter(&$form, &$form_state, $form_id) {
 
     // Add the form buttons to the top of the page
     // Based on: http://blog.urbaninsight.com/2011/09/20/editors-perspective-creating-content-drupal
-    $top_buttons = content_type_extras_get_default('content_type_extras_top_buttons');
-    if (!empty($top_buttons['node_edit'])) {
+    $top_buttons = content_type_extras_get_setting('content_type_extras_top_buttons', $type);
+
+    if (!empty($top_buttons['node_edit']) && in_array('node_edit', $top_buttons)) {
       $form['pre_actions'] = $form['actions'];
       $form['pre_actions']['#weight'] = -100;
     }
@@ -199,16 +220,20 @@ function content_type_extras_form_alter(&$form, &$form_state, $form_id) {
   // but the user can enter a name any length, getting an error message if the name is too long
   // That drives me crazy!! This fixes that!
   elseif ($form_id == 'field_ui_field_overview_form') {
+    $type = arg(4);
+
     drupal_add_js(drupal_get_path('module', 'content_type_extras') . '/js/content_type_extras.manage_fields.js');
 
-    $top_buttons = content_type_extras_get_default('content_type_extras_top_buttons');
-    if (!empty($top_buttons['manage_fields'])) {
+    $top_buttons = content_type_extras_get_setting('content_type_extras_top_buttons', $type);
+    if (!empty($top_buttons['manage_fields']) || in_array('manage_fields', $top_buttons)) {
       $form['pre_actions'] = $form['actions'];
       $form['pre_actions']['#weight'] = -100;
     }
 
-    $form['fields']['_add_new_field']['field_name']['#maxlength'] = 26;
-    $form['fields']['_add_new_field']['field_name']['#description'] .= t(' - <span class="characters">26</span> characters max.');
+    if (isset($form['fields']['_add_new_field'])) {
+      $form['fields']['_add_new_field']['field_name']['#maxlength'] = 26;
+      $form['fields']['_add_new_field']['field_name']['#description'] .= t(' - <span class="characters">26</span> characters max.');
+    }
     // The field_group module does the same thing, so if that is enabled, handle it the same way
     if (module_exists('field_group')) {
       $form['fields']['_add_new_group']['group_name']['#maxlength'] = 26;
@@ -242,6 +267,13 @@ function content_type_extras_node_form_edit_submit(&$form, &$form_state) {
   // Allow compatibility with content lock module.
   if (isset($_REQUEST['content_lock_token'])) {
     $query_string['content_lock_token'] = $_REQUEST['content_lock_token'];
+  }
+  // Allow compatibility with additional query parameters.
+  $query_parameters = drupal_get_query_parameters();
+  if (!empty($query_parameters)) {
+    foreach ($query_parameters as $key => $value) {
+      $query_string[$key] = $value;
+    }
   }
   if (!empty($query_string)) {
     $form_state['redirect'] = url('node/' . $form_state['values']['nid'] . '/edit',
@@ -370,20 +402,25 @@ function content_type_extras_get_initial($setting = NULL) {
     ),
     'node_submitted' => 1,
     // Values set by content_type_extras.module
-    'content_type_extras_preview_button'          => t('Preview'),
-    'content_type_extras_save_and_new'            => 0,
-    'content_type_extras_save_and_new_button'     => t('Save and New'),
-    'content_type_extras_save_and_edit'           => 0,
-    'content_type_extras_save_and_edit_button'    => t('Save and Edit'),
-    'content_type_extras_cancel'                  => 0,
-    'content_type_extras_title_hide'              => 0,
-    'content_type_extras_title_hide_css'          => 0,
-    'content_type_extras_title_hide_front'        => 0,
-    'content_type_extras_top_buttons'             => array(),
-    'content_type_extras_remove_body'             => 0,
-    'content_type_extras_descriptions_required'   => 0,
-    'content_type_extras_user_permissions_select' => 'cte',
-    'content_type_extras_excluded_node_forms'     => array(),
+    'content_type_extras_save_button'                 => t('Save'),
+    'content_type_extras_preview_button'              => t('Preview'),
+    'content_type_extras_save_and_new'                => 0,
+    'content_type_extras_save_and_new_button'         => t('Save and New'),
+    'content_type_extras_save_and_edit'               => 0,
+    'content_type_extras_save_and_edit_button'        => t('Save and Edit'),
+    'content_type_extras_cancel'                      => 0,
+    'content_type_extras_cancel_hide_warning'         => 0,
+    'content_type_extras_title_hide'                  => 0,
+    'content_type_extras_title_hide_css'              => 0,
+    'content_type_extras_title_hide_front'            => 0,
+    'content_type_extras_top_buttons'                 => array(),
+    'content_type_extras_remove_body'                 => 0,
+    'content_type_extras_disable_token_display'       => 0,
+    'content_type_extras_cancel_button_location'      => 'previous',
+    'content_type_extras_cancel_button_location_path' => '',
+    'content_type_extras_descriptions_required'       => 0,
+    'content_type_extras_user_permissions_select'     => 'cte',
+    'content_type_extras_excluded_node_forms'         => array(),
     // Values set by comment.module
     'comment' => array(
       'comment'          => 2,

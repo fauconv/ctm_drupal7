@@ -55,7 +55,7 @@ vendor
 nbproject/*
 nbproject/**/*
 
-# DCF files
+# CTM files
 /config/*.config.local.ini
 !/config/example.config.*
 /config/site_*
@@ -63,4 +63,6 @@ nbproject/**/*
 /config/masquerade-site_*
 /config/mock-site_*
 /config/parameters-site_*
+
+# Drupal files and contrib
 /htdocs/media/site_*

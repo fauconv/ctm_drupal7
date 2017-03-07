@@ -11,8 +11,8 @@
         }
     ],
     "config": {
-    	"bin-dir": "scripts/vendor/bin",
-    	"vendor-dir": "scripts/vendor",
+    	"bin-dir": "vendor/bin",
+    	"vendor-dir": "vendor",
     	"bin-compat": "full",
         "apcu-autoloader": true,
         "optimize-autoloader": true

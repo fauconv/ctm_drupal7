@@ -9,11 +9,12 @@ In a multi-site configuration it is not possible to update only one site.
 -----------------
 
   - take files from the project SCM (`git pull` ou `svn update`)
-  - Launch `deploy.sh -u` from script directory
+  - Launch `project.sh update` from script directory
 
 
 2. In production
 ----------------
+  - you have previously created a package with the command `project.sh package x.y`
   - place the .tgz file in the root directory of the project (where there are www, config, and scripts directory)
-  - Launch `deploy.sh -z <nom_du_fichier_zip>` from script directory
+  - Launch `project.sh unpack <nom_du_fichier_zip>` from script directory
 

@@ -29,6 +29,14 @@ function content_type_extras_node_type_form(&$form) {
     ),
   );
 
+  $form['submission']['content_type_extras_save_button'] = array(
+    '#type'          => 'textfield',
+    '#title'         => "'Save' button value",
+    '#description'   => t(''),
+    '#default_value' => content_type_extras_get_setting('content_type_extras_save_button', $type),
+    '#weight'        => $form['submission']['node_preview']['#weight'] - 1,
+  );
+
   // Add the option to have a "Save and New" button added to the content type
   $form['submission']['content_type_extras_save_and_new'] = array(
     '#type'        => 'radios',
@@ -91,6 +99,19 @@ function content_type_extras_node_type_form(&$form) {
     '#default_value' => content_type_extras_get_setting('content_type_extras_cancel', $type),
     '#weight'        => $form['submission']['node_preview']['#weight'] + 6,
   );
+  // Add the option to have the warning message appear when using the "Cancel" button
+  $form['submission']['content_type_extras_cancel_hide_warning'] = array(
+    '#type'        => 'checkbox',
+    '#title'       => 'Hide cancel button warning message',
+    '#description' => t('If checked, a javascript alert box will <strong>not</strong> display warning the user that their changes will not be saved.'),
+    '#default_value' => content_type_extras_get_setting('content_type_extras_cancel_hide_warning', $type),
+    '#weight'        => $form['submission']['content_type_extras_cancel']['#weight'] + 1,
+    '#states'        => array(
+      'visible' => array(
+        'input[name=content_type_extras_cancel]' => array('value' => '1'),
+      ),
+    ),
+  );
 
   // Set weight of help text area
   $form['submission']['help']['#weight'] = $form['submission']['node_preview']['#weight'] + 7;
@@ -119,24 +140,27 @@ function content_type_extras_node_type_form(&$form) {
     }
   }
 
-  if (module_exists('xmlsitemap')) {
-    // XML Sitemap stores its variables a little differently, so we have to adjust for it here.
-    $xmlsitemap_settings = content_type_extras_get_setting('xmlsitemap_settings', 'node_' . $type);
-    $form['xmlsitemap']['status']['#default_value'] = $xmlsitemap_settings['status'];
-    $form['xmlsitemap']['priority']['#default_value'] = $xmlsitemap_settings['priority'];
-  }
+  // A new content type is being added
+  if (empty($form['#node_type']->name)) {
+    if (module_exists('xmlsitemap')) {
+      // XML Sitemap stores its variables a little differently, so we have to adjust for it here.
+      $xmlsitemap_settings = content_type_extras_get_setting('xmlsitemap_settings', 'node_' . $type);
+      $form['xmlsitemap']['status']['#default_value'] = $xmlsitemap_settings['status'];
+      $form['xmlsitemap']['priority']['#default_value'] = $xmlsitemap_settings['priority'];
+    }
 
-  if (module_exists('scheduler')) {
-    // Scheduler stores its variables a little differently, so we have to adjust for it here.
-    $scheduler_settings = content_type_extras_get_setting('scheduler_settings', 'node_' . $type);
+    if (module_exists('scheduler')) {
+      // Scheduler stores its variables a little differently, so we have to adjust for it here.
+      $scheduler_settings = content_type_extras_get_setting('scheduler_settings', 'node_' . $type);
 
-    $form['scheduler']['publish']['scheduler_publish_enable']['#default_value'] = $scheduler_settings['publish_enable'];
-    $form['scheduler']['publish']['scheduler_publish_touch']['#default_value'] = $scheduler_settings['publish_touch'];
-    $form['scheduler']['publish']['scheduler_publish_require']['#default_value'] = $scheduler_settings['publish_require'];
-    $form['scheduler']['publish']['scheduler_publish_revision']['#default_value'] = $scheduler_settings['publish_revision'];
-    $form['scheduler']['unpublish']['scheduler_unpublish_enable']['#default_value'] = $scheduler_settings['unpublish_enable'];
-    $form['scheduler']['unpublish']['scheduler_unpublish_require']['#default_value'] = $scheduler_settings['unpublish_require'];
-    $form['scheduler']['unpublish']['scheduler_unpublish_revision']['#default_value'] = $scheduler_settings['unpublish_revision'];
+      $form['scheduler']['publish']['scheduler_publish_enable']['#default_value'] = $scheduler_settings['publish_enable'];
+      $form['scheduler']['publish']['scheduler_publish_touch']['#default_value'] = $scheduler_settings['publish_touch'];
+      $form['scheduler']['publish']['scheduler_publish_require']['#default_value'] = $scheduler_settings['publish_require'];
+      $form['scheduler']['publish']['scheduler_publish_revision']['#default_value'] = $scheduler_settings['publish_revision'];
+      $form['scheduler']['unpublish']['scheduler_unpublish_enable']['#default_value'] = $scheduler_settings['unpublish_enable'];
+      $form['scheduler']['unpublish']['scheduler_unpublish_require']['#default_value'] = $scheduler_settings['unpublish_require'];
+      $form['scheduler']['unpublish']['scheduler_unpublish_revision']['#default_value'] = $scheduler_settings['unpublish_revision'];
+    }
   }
 
   // Get all available user roles
@@ -163,11 +187,14 @@ function content_type_extras_node_type_form(&$form) {
   // We are creating a new content type
   else {
     $user_permissions = content_type_extras_get_setting('user_permissions', '');
-    $create_roles = $user_permissions['create_roles'];
-    $edit_roles   = $user_permissions['edit_roles'];
-    $edit_own_roles   = $user_permissions['edit_own_roles'];
-    $delete_roles = $user_permissions['delete_roles'];
-    $delete_own_roles = $user_permissions['delete_own_roles'];
+
+    $selected_perms = content_type_extras_get_selected_roles($user_permissions);
+
+    $create_roles = $selected_perms['create_roles'];
+    $edit_roles   = $selected_perms['edit_roles'];
+    $edit_own_roles   = $selected_perms['edit_own_roles'];
+    $delete_roles = $selected_perms['delete_roles'];
+    $delete_own_roles = $selected_perms['delete_own_roles'];
   }
 
   $permission_select = content_type_extras_get_default('content_type_extras_user_permissions_select');
@@ -225,6 +252,16 @@ function content_type_extras_node_type_form(&$form) {
       '#default_value' => content_type_extras_get_setting('content_type_extras_title_hide', $type),
       '#weight'        => 0,
     ),
+    'content_type_extras_top_buttons' => array(
+      '#type'        => 'checkboxes',
+      '#title'       => t('Show form buttons at top of'),
+      '#description' => t('Select the areas to duplicate form submission buttons on the top of the page.'),
+      '#options'     => array(
+        'manage_fields' => t('Manage fields form'),
+        'node_edit'     => t('Node edit form'),
+      ),
+      '#default_value' => content_type_extras_get_setting('content_type_extras_top_buttons', $type),
+    ),
   );
 
   if (!empty($form['#node_type']->is_new)) {
@@ -251,17 +288,19 @@ function content_type_extras_node_type_form(&$form) {
       '#weight'        => 20,
     );
 
-    $form['extras']['token_help'] = array(
-      '#title'       => t('Replacement patterns'),
-      '#type'        => 'fieldset',
-      '#collapsible' => TRUE,
-      '#collapsed'   => TRUE,
-      'help' => array(
-        '#theme'       => 'token_tree',
-        '#token_types' => array('node'),
-      ),
-      '#weight' => 30,
-    );
+    if (!content_type_extras_get_default('content_type_extras_disable_token_display')) {
+      $form['extras']['token_help'] = array(
+        '#title'       => t('Replacement patterns'),
+        '#type'        => 'fieldset',
+        '#collapsible' => TRUE,
+        '#collapsed'   => TRUE,
+        'help' => array(
+          '#theme'       => 'token_tree',
+          '#token_types' => array('node'),
+        ),
+        '#weight' => 30,
+      );
+    }
   }
 
   // Custom form submission handler
@@ -276,6 +315,8 @@ function content_type_extras_node_type_form(&$form) {
 function content_type_extras_node_type_form_submit(&$form, &$form_state) {
   $values = $form_state['values'];
   $user_permissions = $values['user_permissions'];
+
+  $selected_perms = content_type_extras_get_selected_roles($user_permissions);
 
   foreach ($user_permissions as $action => $group) {
     list($type, $trash) = explode('_', $action);
@@ -331,4 +372,23 @@ function content_type_extras_node_type_form_submit(&$form, &$form_state) {
   // it's not named properly for pathauto to recognize it.
   variable_set('pathauto_node_' . $values['type'] . '_pattern', variable_get('pathauto_node_' . $values['type']));
   variable_del('pathauto_node_' . $values['type']);
+}
+
+
+function content_type_extras_get_selected_roles($permissions, $perm_type = NULL) {
+  $selected_perms = array();
+  foreach ($permissions as $type => $group) {
+    foreach ($group as $rid => $value) {
+      $selected_perms[$type] = array();
+      if ($value != 0) {
+        $selected_perms[$type][$rid] = $rid;
+      }
+    }
+  }
+
+  if (!empty($perm_type)) {
+    return $selected_perms[$perm_type];
+  }
+
+  return $selected_perms;
 }

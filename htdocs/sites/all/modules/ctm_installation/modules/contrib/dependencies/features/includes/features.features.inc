@@ -9,7 +9,6 @@ function features_features_api() {
       'name' => 'Dependencies',
       'feature_source' => TRUE,
       'duplicates' => FEATURES_DUPLICATES_ALLOWED,
-      'weight' => -10,
     ),
   );
 }

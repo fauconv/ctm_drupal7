@@ -48,9 +48,6 @@
  *
  *   'alter_hook': What the name of the alter hook for this component is.
  *    Do not include the '_alter' part. Defaults to 'default_hook'.
- *
- *   'weight': An optional weight for this component. Use this to set the order
- *   in which operations on components will run. Defaults to 0.
  */
 function hook_features_api() {
   return array(
@@ -59,7 +56,6 @@ function hook_features_api() {
       'default_file' => FEATURES_DEFAULTS_INCLUDED,
       'feature_source' => TRUE,
       'file' => drupal_get_path('module', 'mycomponent') . '/mycomponent.features.inc',
-      'weight' => 0,
     ),
   );
 }

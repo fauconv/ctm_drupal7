@@ -609,7 +609,7 @@ function token_tokens($type, $tokens, array $data = array(), array $options = ar
 
     if (!isset($link['title'])) {
       // Re-load the link if it was not loaded via token_menu_link_load().
-      $link = token_menu_link_load($link['mlid'], $language_code);
+      $link = token_menu_link_load($link['mlid']);
     }
 
     foreach ($tokens as $name => $original) {
@@ -624,17 +624,17 @@ function token_tokens($type, $tokens, array $data = array(), array $options = ar
           $replacements[$original] = url($link['href'], $url_options);
           break;
         case 'parent':
-          if (!empty($link['plid']) && $parent = token_menu_link_load($link['plid'], $language_code)) {
+          if (!empty($link['plid']) && $parent = token_menu_link_load($link['plid'])) {
             $replacements[$original] = $sanitize ? check_plain($parent['title']) : $parent['title'];
           }
           break;
         case 'parents':
-          if ($parents = token_menu_link_load_all_parents($link['mlid'], $language_code)) {
+          if ($parents = token_menu_link_load_all_parents($link['mlid'])) {
             $replacements[$original] = token_render_array($parents, $options);
           }
           break;
         case 'root';
-          if (!empty($link['p1']) && $link['p1'] != $link['mlid'] && $root = token_menu_link_load($link['p1'], $language_code)) {
+          if (!empty($link['p1']) && $link['p1'] != $link['mlid'] && $root = token_menu_link_load($link['p1'])) {
             $replacements[$original] = $sanitize ? check_plain($root['title']) : $root['title'];
           }
           break;
@@ -642,16 +642,16 @@ function token_tokens($type, $tokens, array $data = array(), array $options = ar
     }
 
     // Chained token relationships.
-    if (!empty($link['plid']) && ($source_tokens = token_find_with_prefix($tokens, 'parent')) && $parent = token_menu_link_load($link['plid'], $language_code)) {
+    if (!empty($link['plid']) && ($source_tokens = token_find_with_prefix($tokens, 'parent')) && $parent = token_menu_link_load($link['plid'])) {
       $replacements += token_generate('menu-link', $source_tokens, array('menu-link' => $parent), $options);
     }
     // [menu-link:parents:*] chained tokens.
     if ($parents_tokens = token_find_with_prefix($tokens, 'parents')) {
-      if ($parents = token_menu_link_load_all_parents($link['mlid'], $language_code)) {
+      if ($parents = token_menu_link_load_all_parents($link['mlid'])) {
         $replacements += token_generate('array', $parents_tokens, array('array' => $parents), $options);
       }
     }
-    if (!empty($link['p1']) && $link['p1'] != $link['mlid'] && ($root_tokens = token_find_with_prefix($tokens, 'root')) && $root = token_menu_link_load($link['p1'], $language_code)) {
+    if (!empty($link['p1']) && $link['p1'] != $link['mlid'] && ($root_tokens = token_find_with_prefix($tokens, 'root')) && $root = token_menu_link_load($link['p1'])) {
       $replacements += token_generate('menu-link', $root_tokens, array('menu-link' => $root), $options);
     }
     if ($url_tokens = token_find_with_prefix($tokens, 'url')) {
@@ -1104,7 +1104,7 @@ function menu_tokens($type, $tokens, array $data = array(), array $options = arr
     foreach ($tokens as $name => $original) {
       switch ($name) {
         case 'menu-link':
-          if ($link = token_node_menu_link_load($node, $language_code)) {
+          if ($link = token_node_menu_link_load($node)) {
             $replacements[$original] = $sanitize ? check_plain($link['title']) : $link['title'];
           }
           break;
@@ -1112,7 +1112,7 @@ function menu_tokens($type, $tokens, array $data = array(), array $options = arr
 
       // Chained token relationships.
       if ($menu_tokens = token_find_with_prefix($tokens, 'menu-link')) {
-        if ($link = token_node_menu_link_load($node, $language_code)) {
+        if ($link = token_node_menu_link_load($node)) {
           $replacements += token_generate('menu-link', $menu_tokens, array('menu-link' => $link), $options);
         }
       }
@@ -1392,7 +1392,6 @@ function field_token_info_alter(&$info) {
  */
 function field_tokens($type, $tokens, array $data = array(), array $options = array()) {
   $replacements = array();
-  $sanitize = !empty($options['sanitize']);
   $langcode = isset($options['language']) ? $options['language']->language : NULL;
 
   // Entity tokens.
@@ -1437,7 +1436,7 @@ function field_tokens($type, $tokens, array $data = array(), array $options = ar
 /**
  * Pre-render callback for field output used with tokens.
  */
-function token_pre_render_field_token(&$elements) {
+function token_pre_render_field_token($elements) {
   // Remove the field theme hook, attachments, and JavaScript states.
   unset($elements['#theme']);
   unset($elements['#states']);

@@ -43,7 +43,6 @@ function linkit_entity_ctools_linkit_get_children($plugin, $parent) {
     'entity:user',
     'entity:taxonomy_term',
     'entity:file',
-    'entity:menu_link',
   );
 
   foreach ($entities as $entity_type => $entity) {
