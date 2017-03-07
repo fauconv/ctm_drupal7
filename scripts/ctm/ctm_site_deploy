@@ -187,6 +187,10 @@ function finalize {
   echo -e "Cutting settings...                                                   \e[32m\e[1m[ok]\e[0m"
 }
 
+function addcmd {
+  sed "s|drush.php \"|drush.php @${ID} \"|1" ${ABS_SITE_PATH}/drush > ${ABS_SCRIPTS_PATH}/@${ID}
+}
+
 #
 # site deploy
 #
@@ -227,6 +231,7 @@ function site_deploy {
   fi
   cd $ABS_DCF_PATH
   finalize
+  addcmd
   setRight $ENV
   echo ""
   echo "DONT FORGET TO NOTE the administrator password display above this message"
