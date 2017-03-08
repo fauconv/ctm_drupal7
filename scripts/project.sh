@@ -25,6 +25,7 @@ if [ ! -f "${ABS_SCRIPT_PATH}/${SOURCE_PATH}/${SOURCE_SCRIPT}" ]; then
 fi
 source ${ABS_SCRIPT_PATH}/${SOURCE_PATH}/${SOURCE_SCRIPT}
 source ${ABS_SCRIPT_PATH}/${SOURCE_PATH}/ctm_site_deploy
+source ${ABS_SCRIPT_PATH}/${SOURCE_PATH}/ctm_site_back
 source ${ABS_SCRIPT_PATH}/${SOURCE_PATH}/ctm_remove
 source ${ABS_SCRIPT_PATH}/${SOURCE_PATH}/ctm_list
 source ${ABS_SCRIPT_PATH}/${SOURCE_PATH}/ctm_dump
@@ -42,22 +43,24 @@ function showHelp {
   echo "  commands about the entire farm:"
   echo "  -------------------------------"
   echo ""
-  echo "  ${SCRIPT_NAME} package             : create a package for deployment in production of a project "
-  echo "  ${SCRIPT_NAME} unpack <file>       : "
-  echo "  ${SCRIPT_NAME} list                : list all web-site (site-id) in this project"
-  echo "  ${SCRIPT_NAME} update              : update and rebuild all web-site in production or dev "
-  echo "  ${SCRIPT_NAME} set (dev|prod)      : the file right protection. dev => all file writable"
+  echo "  ${SCRIPT_NAME} package           : create a package for deployment in production of a project "
+  echo "  ${SCRIPT_NAME} unpack <file>     : "
+  echo "  ${SCRIPT_NAME} list              : list all web-site (site-id) in this project"
+  echo "  ${SCRIPT_NAME} update            : update and rebuild all web-site in production or dev "
+  echo "  ${SCRIPT_NAME} set (dev|prod)    : the file right protection. dev => all file writable"
   echo ""
   echo "  commands about a site of the farm:"
   echo "  ----------------------------------"
   echo ""
-  echo "  ${SCRIPT_NAME} site deploy <site_id>   : create or install (if already exist) a web-site in the "
-  echo "                                          project for development (drupal install)"
-  echo "                                          => you must set <ID>${LOCAL_CONF} and <ID>${GLOBAL_CONF} before."
-  echo "  ${SCRIPT_NAME} site remove <site-id>   : remove an web-site (installed or not)"
-  echo "  ${SCRIPT_NAME} site update <site-id>   : update and rebuild a web-site in production or dev"
-  echo "  ${SCRIPT_NAME} site back <site-id>     : site configuration and data go back before the last snapshot or update"
-  echo "  ${SCRIPT_NAME} site snapshot <site-id> : make a snapshot (backup) of the site to go back to this point later"
+  echo "  ${SCRIPT_NAME} site deploy <site_id>      : create or install (if already exist) a web-site in the "
+  echo "                                              project for development (drupal install)"
+  echo "                                              => you must set <ID>${LOCAL_CONF} and <ID>${GLOBAL_CONF} before."
+  echo "  ${SCRIPT_NAME} site remove <site-id>      : remove an web-site (installed or not)"
+  echo "  ${SCRIPT_NAME} site update <site-id>      : update and rebuild a web-site in production or dev"
+  echo "  ${SCRIPT_NAME} site back <site-id> [file] : site configuration and data go back before the last snapshot."
+  echo "                                              if a file is specified, the script use that file as snapshot instead of the last snapshot"
+  echo "                                              The file must be in dump directory"
+  echo "  ${SCRIPT_NAME} site snapshot <site-id>    : make a snapshot (backup) of the site to go back to this point later"
   echo ""
   echo " = More help :"
   echo " ============="
@@ -126,10 +129,6 @@ fi
 checkPhp
 while true; do
   case $1 in
-    deploy )
-      deploy "$2"
-      shift;
-      ;;
     set )
       setRight "$2"
       shift;
@@ -138,17 +137,36 @@ while true; do
       list
       ;;
     site )
+      if [ "$3" = "" ]; then
+        echo ""
+        echo -e "\e[31m\e[1mSite id missing !\e[0m"
+        showHelp;
+      fi
+      ID=`echo $3 | sed 's|[^a-z]+||g'`
+      if [ "$ID" = "" ]; then
+        echo ""
+        echo -e "\e[31m\e[1mSite id can only contain lowercase !\e[0m"
+        echo ""
+        exit 1
+      fi
+      SITE_PATH=${SITES_PATH}/$ID
+      ABS_SITE_PATH=${ABS_SITES_PATH}/$ID
+      ABS_MEDIA_PATH=${ABS_MEDIAS_PATH}/$ID
       case $2 in
         deploy )
-          site_deploy "$3"
+          site_deploy
           shift;
           ;;
         dump )
-          dump "$3"
+          dump
           shift;
           ;;
         remove )
-          site_remove "$3"
+          site_remove
+          shift;
+          ;;
+        back )
+          site_back $4
           shift;
           ;;
         * )
