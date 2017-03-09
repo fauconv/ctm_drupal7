@@ -6,7 +6,7 @@
 #| Batch to Manage the entire multi-site/farm/factory/project|
 #|                                                           |
 #+-----------------------------------------------------------+
-#| version : VERSION_SCRIPT                                  |
+#| version : VERSION_APP                                  |
 #+-----------------------------------------------------------+
 
 #CTM paths and init
@@ -36,7 +36,7 @@ cd ${ABS_ROOT_PATH}
 #
 function showHelp {
    echo ""
-   echo " CTM Manager  Version ${VERSION_SCRIPT}"
+   echo " CTM Manager  Version ${VERSION_APP}"
    echo ""
    echo "= Usage :"
    echo "========="

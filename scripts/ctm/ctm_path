@@ -5,13 +5,10 @@
 #| composer and drush dont like bin dir out of vendor dir    |
 #|                                                           |
 #+-----------------------------------------------------------+
-#| version : VERSION_SCRIPT                                  |
+#| version : VERSION_APP                                  |
 #+-----------------------------------------------------------+
-
-VERSION_SCRIPT="1.0.0"
-
 CONFIG_PATH=config
-DOCUMENT_ROOT=htdocs
+DOCUMENT_ROOT=web
 SITES_PATH=${DOCUMENT_ROOT}/sites #if change update sites.php
 DOC_PATH=docs
 SCRIPTS_PATH=scripts #if change update project.sh file
@@ -58,3 +55,8 @@ ADMIN_NAME=developer
 LOCAL_CONF=.config.local.ini
 GLOBAL_CONF=.config.global.ini
 EXAMPLE=example
+
+#
+# version
+#
+source ${ABS_DOCUMENT_ROOT}/releases/release.properties

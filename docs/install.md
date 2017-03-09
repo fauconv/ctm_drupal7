@@ -27,16 +27,16 @@ par site même si il n'y a qu'une seule ferme.
     (AllowOverride all)
   - "DirectoryIndex" doit contenit "index.php"
   - L'option "followsymlink" doit etre active
-  - "Document_root" de votre virtual host doit pointer sur le répertoire "htdocs"
+  - "Document_root" de votre virtual host doit pointer sur le répertoire "web"
   - Si vous utilisez des url du type "http://<hostname>/<alias>" au
     lieu de "http://<hostname>" il vous faudra modifier votre
     configuration apache. Il vous faut créer un alias (pour la suite nous
-    l'appellerons <alias>) qui pointe vers le répertoire "htdocs" de la ferme
+    l'appellerons <alias>) qui pointe vers le répertoire "web" de la ferme
 
 3. Configuration PHP
 ---------------------
   - Si la directive "open_basedir"est utilise, elle doit pointer sur le
-    répertoire qui contient les 2 répertoires : "htdocs", et "config"
+    répertoire qui contient les 2 répertoires : "web", et "config"
   - Il est recommandé d'installer le module APCU pour PHP et d'activer opcache
     avec les parametres :
 

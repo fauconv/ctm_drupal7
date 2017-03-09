@@ -4,7 +4,7 @@
 #| Lib for URL manipulation                                  |
 #|                                                           |
 #+-----------------------------------------------------------+
-#| version : VERSION_SCRIPT                                  |
+#| version : VERSION_APP                                  |
 #+-----------------------------------------------------------+
 
 URL0=`echo $SITE_URLS | sed 's|,.*||g' | sed "s|'||g"`

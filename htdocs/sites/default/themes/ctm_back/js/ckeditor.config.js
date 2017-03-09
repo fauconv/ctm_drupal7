@@ -1,2 +1,0 @@
-
-CKEDITOR.editorConfig=function(a){a.indentClasses=["rteindent1","rteindent2","rteindent3","rteindent4"];a.justifyClasses=["rteleft","rtecenter","rteright","rtejustify"];a.resize_minWidth=450;a.protectedSource.push(/<\?[\s\S]*?\?>/g);a.extraPlugins="";a.extraCss="";a.bodyClass="";a.bodyId="ck-content";a.templates_files=[Drupal.settings.ckeditor.base_ctm_back+"/js/mytemplates.js"];a.templates_replaceContent=false};
