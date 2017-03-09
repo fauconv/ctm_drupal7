@@ -27,6 +27,8 @@ function create_site {
     cp -r ${ABS_SITES_PATH}/default ${ABS_SITE_PATH}
     cp -R  ${ABS_MEDIAS_PATH}/default ${ABS_MEDIA_PATH}
     chmod -R 777 ${ABS_SITE_PATH} ${ABS_MEDIA_PATH}
+    cp ${ABS_SOURCE_PATH}/default.settings.php ${ABS_SITE_PATH}/settings.php
+    rm ${ABS_SITE_PATH}/default.settings.php
     echo -e "Create site directory...                                                        \e[32m\e[1m[ok]\e[0m"
   else
     echo "Reinitializing installation of site..."
@@ -35,7 +37,7 @@ function create_site {
       cp -R  ${ABS_MEDIAS_PATH}/default ${ABS_MEDIA_PATH}
     fi
     chmod -R 777 ${ABS_MEDIA_PATH}
-    grep -B 10000 "====== CUT HERE ======" ${ABS_SITES_PATH}/default/settings.php | grep -v "====== CUT HERE ======" > ${ABS_SITE_PATH}/settings2.php
+    grep -B 10000 "====== CUT HERE ======" ${ABS_SOURCE_PATH}/default.settings.php | grep -v "====== CUT HERE ======" > ${ABS_SITE_PATH}/settings2.php
     chmod 777 ${ABS_SITE_PATH}/settings2.php
     grep -A 10000 "====== CUT HERE ======" ${ABS_SITES_PATH}/settings.php >> ${ABS_SITE_PATH}/settings2.php
     mv ${ABS_SITE_PATH}/settings.php ${ABS_SITE_PATH}/settings.php.orig
@@ -106,7 +108,7 @@ function read_config {
     echo ""
     exit 1
   fi
-  source ${ABS_SCRIPT_PATH}/${SOURCE_PATH}/ctm_url
+  source ${ABS_SOURCE_PATH}/ctm_url.sh
 }
 
 #
@@ -170,9 +172,9 @@ function create_htaccess {
 function finalize {
   echo "Cutting settings..."
   setRight dev
-  rm ${ABS_SITES_PATH}/default/default.settings.php
+  cp ${ABS_SITE_PATH}/settings.php ${ABS_DUMP_PATH}/settings.php #
   grep -B 10000 "====== CUT HERE ======" ${ABS_SITE_PATH}/settings.php | grep -v "====== CUT HERE ======" > ${ABS_CONFIG_PATH}/settings-${ID}.php
-  cp ${ABS_SCRIPTS_PATH}/${SOURCE_PATH}/header.settings.php ${ABS_SITE_PATH}/settings2.php
+  cp ${ABS_SOURCE_PATH}/header.settings.php ${ABS_SITE_PATH}/settings2.php
   chmod 777 ${ABS_SITE_PATH}/settings2.php
   grep -A 10000 "====== CUT HERE ======" ${ABS_SITE_PATH}/settings.php >> ${ABS_SITE_PATH}/settings2.php
   rm -f ${ABS_SITE_PATH}/settings.php
@@ -183,12 +185,13 @@ function finalize {
   fi
   cp ${ABS_CONFIG_PATH}/example.mock-default.xml ${ABS_CONFIG_PATH}/mock-${ID}.xml
   cp ${ABS_CONFIG_PATH}/example.masquerade-default.xml ${ABS_CONFIG_PATH}/masquerade-${ID}.xml
+  cp ${ABS_SOURCE_PATH}/default.settings.php ${ABS_SITES_PATH}/default
   setRight $ENV
   echo -e "Cutting settings...                                                   \e[32m\e[1m[ok]\e[0m"
 }
 
 function addcmd {
-  sed "s|drush.php \"|drush.php @${ID} \"|1" ${ABS_SITE_PATH}/drush > ${ABS_SCRIPTS_PATH}/@${ID}
+  sed "s|drush.php \"|drush.php @${ID} \"|1" ${ABS_SCRIPTS_PATH}/drush > ${ABS_SCRIPTS_PATH}/@${ID}
 }
 
 #
