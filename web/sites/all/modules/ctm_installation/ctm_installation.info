@@ -88,7 +88,6 @@ dependencies[] = taxonomy_manager
 dependencies[] = shs
 
 ;autre
-dependencies[] = module_filter
 dependencies[] = libraries
 dependencies[] = ultimate_cron
 

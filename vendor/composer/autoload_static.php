@@ -269,7 +269,7 @@ class ComposerStaticInit499af1bcdd07c02ed1d0bdd8a966c1ff
         'Drush\\Config\\StorageFilter' => __DIR__ . '/..' . '/drush/drush/lib/Drush/Config/StorageFilter.php',
         'Drush\\Config\\StorageWrapper' => __DIR__ . '/..' . '/drush/drush/lib/Drush/Config/StorageWrapper.php',
         'Drush\\Drupal\\DrupalKernel' => __DIR__ . '/..' . '/drush/drush/lib/Drush/Drupal/DrupalKernel.php',
-        'Drush\\Drupal\\DrushServiceModfier' => __DIR__ . '/..' . '/drush/drush/lib/Drush/Drupal/DrushServiceModfier.php',
+        'Drush\\Drupal\\DrushServiceModifier' => __DIR__ . '/..' . '/drush/drush/lib/Drush/Drupal/DrushServiceModifier.php',
         'Drush\\Drupal\\ExtensionDiscovery' => __DIR__ . '/..' . '/drush/drush/lib/Drush/Drupal/ExtensionDiscovery.php',
         'Drush\\Drupal\\FindCommandsCompilerPass' => __DIR__ . '/..' . '/drush/drush/lib/Drush/Drupal/FindCommandsCompilerPass.php',
         'Drush\\Log\\DrushLog' => __DIR__ . '/..' . '/drush/drush/lib/Drush/Log/DrushLog.php',

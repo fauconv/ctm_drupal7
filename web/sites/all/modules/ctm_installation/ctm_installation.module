@@ -69,12 +69,14 @@ function ctm_installation_get_devel_modules() {
       'feeds_tamper_ui',
       'field_ui',
       'fontyourface_ui',
+      'fpa',
       'gplib',
       'journal',
       'l10n_client',
       'l10n_update',
       'macro',
       'masquerade',
+      'module_filter',
       'og_example',
       'path_breadcrumbs_ui',
       'potx',
@@ -109,6 +111,8 @@ function ctm_installation_get_default_devel_modules() {
       'queue_ui' => 'queue_ui',
       'dblog' => 'dblog',
       'ctm_styleguide' => 'ctm_styleguide',
+      'module_filter'  => 'module_filter',
+      'fpa' => 'fpa',
   );
   drupal_alter('installation_default_modules', $list);
   return $list;
