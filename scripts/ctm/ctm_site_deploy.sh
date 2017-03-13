@@ -37,11 +37,8 @@ function create_site {
       cp -R  ${ABS_MEDIAS_PATH}/default ${ABS_MEDIA_PATH}
     fi
     chmod -R 777 ${ABS_MEDIA_PATH}
-    grep -B 10000 "====== CUT HERE ======" ${ABS_SOURCE_PATH}/default.settings.php | grep -v "====== CUT HERE ======" > ${ABS_SITE_PATH}/settings2.php
-    chmod 777 ${ABS_SITE_PATH}/settings2.php
-    grep -A 10000 "====== CUT HERE ======" ${ABS_SITES_PATH}/settings.php >> ${ABS_SITE_PATH}/settings2.php
     mv ${ABS_SITE_PATH}/settings.php ${ABS_SITE_PATH}/settings.php.orig
-    mv ${ABS_SITE_PATH}/settings2.php ${ABS_SITE_PATH}/settings.php
+    cp ${ABS_SOURCE_PATH}/default.settings.php ${ABS_SITE_PATH}/settings.php
     echo -e "Reinitializing installalation of site...                                \e[32m\e[1m[ok]\e[0m"
   fi
   echo "Configuring site..."
