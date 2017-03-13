@@ -6,7 +6,7 @@
 #+----------------------------------------------------------------+
 
 SOURCE_PATH='ctm'
-SOURCE_SCRIPT='ctm_path.sh'
+SOURCE_SCRIPT='path.sh'
 SCRIPT_NAME=$(basename $0)
 ABS_SCRIPT_PATH=$(dirname `readlink -e $0`);
 if [ "$ABS_SCRIPT_PATH" = "" ]; then

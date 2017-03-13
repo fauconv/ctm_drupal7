@@ -9,9 +9,9 @@
 #| version : VERSION_APP                                  |
 #+-----------------------------------------------------------+
 
-#CTM paths and init
+#paths and init
 SOURCE_PATH='ctm'
-SOURCE_SCRIPT='ctm_path.sh'
+SOURCE_SCRIPT='path.sh'
 SCRIPT_NAME=$(basename $0)
 ABS_SCRIPT_PATH=$(dirname `readlink -e $0`);
 if [ "$ABS_SCRIPT_PATH" = "" ]; then
@@ -24,11 +24,11 @@ if [ ! -f "${ABS_SCRIPT_PATH}/${SOURCE_PATH}/${SOURCE_SCRIPT}" ]; then
   exit 1
 fi
 source ${ABS_SCRIPT_PATH}/${SOURCE_PATH}/${SOURCE_SCRIPT}
-source ${ABS_SOURCE_PATH}/ctm_site_deploy.sh
-source ${ABS_SOURCE_PATH}/ctm_site_back.sh
-source ${ABS_SOURCE_PATH}/ctm_site_remove.sh
-source ${ABS_SOURCE_PATH}/ctm_list.sh
-source ${ABS_SOURCE_PATH}/ctm_site_dump.sh
+source ${ABS_SOURCE_PATH}/site_deploy.sh
+source ${ABS_SOURCE_PATH}/site_back.sh
+source ${ABS_SOURCE_PATH}/site_remove.sh
+source ${ABS_SOURCE_PATH}/list.sh
+source ${ABS_SOURCE_PATH}/site_dump.sh
 cd ${ABS_ROOT_PATH}
 
 #

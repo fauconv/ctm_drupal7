@@ -29,7 +29,7 @@
 # composer-managed Drupal sites.
 #
 SOURCE_PATH='ctm'
-SOURCE_SCRIPT='ctm_path.sh'
+SOURCE_SCRIPT='path.sh'
 ABS_SCRIPT_PATH=$(dirname `readlink -e $0`);
 if [ "$ABS_SCRIPT_PATH" = "" ]; then
   ABS_SCRIPT_PATH=$(cd `dirname "${BASH_SOURCE[0]}"` && pwd)
