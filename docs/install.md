@@ -1,4 +1,5 @@
  Mise en place d'une ferme Drupal industrialisée
+ https://github.com/fauconv/ctm_drupal7
 =================================================
 Ce document décrit comment installer une ferme et un site Drupal
 pour développement ou mise en recette.

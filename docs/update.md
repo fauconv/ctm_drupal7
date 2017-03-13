@@ -1,4 +1,5 @@
 Update of a CTM farm
+https://github.com/fauconv/ctm_drupal7
 ====================
 
 This document present how to update an existing farm in development, staging, or production.
