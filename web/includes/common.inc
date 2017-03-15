@@ -2292,10 +2292,23 @@ function url($path = NULL, array $options = array()) {
   // Strip leading slashes from internal paths to prevent them becoming external
   // URLs without protocol. /example.com should not be turned into
   // //example.com.
-  $path = ltrim($path, '/');
+  //$path = ltrim($path, '/');
 
-  global $base_url, $base_secure_url, $base_insecure_url;
+  global $base_url, $base_root, $base_secure_url, $base_insecure_url, $base_secure_root, $base_insecure_root;
 
+  // The special path '<front>' links to the default front page.
+  if ($path == '<front>') {
+    $path = '';
+  }
+  elseif (!empty($path) && !$options['alias']) {
+    $language = isset($options['language']) && isset($options['language']->language) ? $options['language']->language : '';
+    $alias = drupal_get_path_alias($original_path, $language);
+    if ($alias != $original_path) {
+      $path = $alias;
+    }
+  }
+
+  if (substr($path, 0, 1) != '/') {
   // The base_url might be rewritten from the language rewrite in domain mode.
   if (!isset($options['base_url'])) {
     if (isset($options['https']) && variable_get('https', FALSE)) {
@@ -2312,21 +2325,30 @@ function url($path = NULL, array $options = array()) {
       $options['base_url'] = $base_url;
     }
   }
-
-  // The special path '<front>' links to the default front page.
-  if ($path == '<front>') {
-    $path = '';
+    $base = $options['absolute'] ? $options['base_url'] . '/' : base_path();
+    $prefix = empty($path) ? rtrim($options['prefix'], '/') : $options['prefix'];
   }
-  elseif (!empty($path) && !$options['alias']) {
-    $language = isset($options['language']) && isset($options['language']->language) ? $options['language']->language : '';
-    $alias = drupal_get_path_alias($original_path, $language);
-    if ($alias != $original_path) {
-      $path = $alias;
+  else {
+    // The base_root might be rewritten from the language rewrite in domain mode.
+    if (!isset($options['base_root'])) {
+      if (isset($options['https']) && variable_get('https', FALSE)) {
+        if ($options['https'] === TRUE) {
+          $options['base_root'] = $base_secure_root;
+          $options['absolute'] = TRUE;
+        }
+        elseif ($options['https'] === FALSE) {
+          $options['base_root'] = $base_insecure_root;
+          $options['absolute'] = TRUE;
     }
   }
 
-  $base = $options['absolute'] ? $options['base_url'] . '/' : base_path();
-  $prefix = empty($path) ? rtrim($options['prefix'], '/') : $options['prefix'];
+      else {
+        $options['base_root'] = $base_root;
+      }
+    }
+    $base = $options['absolute'] ? $options['base_root'] : '';
+    $prefix = '';
+  }
 
   // With Clean URLs.
   if (!empty($GLOBALS['conf']['clean_url'])) {

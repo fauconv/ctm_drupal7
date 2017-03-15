@@ -702,6 +702,10 @@ function ctm_installation_set_permissions($ct_name, $types, $roles, $grant = 'gr
         'full edit any ' . $ct_name . ' content',
     ));
   }
+  if ($module == 'user') {
+    $permissions = array_keys(module_invoke_all('permission'));
+    $perm = array_intersect($perm, $permissions);
+  }
   $callback = $module . '_role_' . $grant . '_permissions';
   if (is_array($roles)) {
     foreach ($roles as $role) {

@@ -58,10 +58,15 @@ nbproject/**/*
 /config/*.config.local.ini
 !/config/example.config.*
 /config/site_*
-/config/settings-site_*
-/config/masquerade-site_*
-/config/mock-site_*
-/config/parameters-site_*
+/config/settings-*
+/config/masquerade-*
+/config/mock-*
+/config/parameters-*
+/config/sites.php
+/drush/site-aliases/*
+/dump/*
+/scripts/@*
 
 # Drupal files and contrib
-/htdocs/media/site_*
+/web/media/*
+/web/media/**/*

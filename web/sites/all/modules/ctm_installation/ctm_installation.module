@@ -110,7 +110,6 @@ function ctm_installation_get_default_devel_modules() {
       'rules_admin' => 'rules_admin',
       'queue_ui' => 'queue_ui',
       'dblog' => 'dblog',
-      'ctm_styleguide' => 'ctm_styleguide',
       'module_filter'  => 'module_filter',
       'fpa' => 'fpa',
   );

@@ -27,6 +27,7 @@ function ctm_installation_config_permissions_after($profile, $roles, $op = 'upda
       'view own unpublished content',
       'show format selection for node',
   ));
+  $permissions = array_keys(module_invoke_all('permission'));
   $permission_list = array(
       'view revisions',
       'access administration pages',
@@ -46,6 +47,7 @@ function ctm_installation_config_permissions_after($profile, $roles, $op = 'upda
       'define menu item for node',
       'administer ctm configuration',
   );
+  $permission_list = array_intersect($permission_list, $permissions);
   user_role_grant_permissions($roles[CONTRIBUTEUR], $permission_list);
 
   $permission_list = array_merge($permission_list, array(
@@ -66,10 +68,11 @@ function ctm_installation_config_permissions_after($profile, $roles, $op = 'upda
       'edit users with role '.$roles[ADMIN_SITE],
       'cancel users with role '.$roles[ADMIN_SITE],
   ));
+  $permission_list = array_intersect($permission_list, $permissions);
   user_role_grant_permissions($roles[ADMIN_SITE], $permission_list);
 
   // Suppression des droits show tips et show tips link de better formats
-  user_role_revoke_permissions($roles[ADMINISTRATEUR], array('show format tips',
+  $permission_list = array('show format tips',
       'show more format tips link',
       'customize ckeditor',
       'publish any content',
@@ -84,7 +87,9 @@ function ctm_installation_config_permissions_after($profile, $roles, $op = 'upda
       'allow users to pick navigation templates',
       'allow users to pick user-menu templates',
       'allow users to pick rules_config templates',
-  ));
+  );
+  $permission_list = array_intersect($permission_list, $permissions);
+  user_role_revoke_permissions($roles[ADMINISTRATEUR], $permission_list);
 
   // add admin as ADMINISTRATEUR
   ctm_installation_queue_add_role(array(1), $roles[ADMINISTRATEUR]);
