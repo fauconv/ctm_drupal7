@@ -25,9 +25,11 @@ function expire_alias_form_expire_admin_settings_form_alter(&$form, &$form_state
   );
 
   // Prevent the Expire protocol include base url option from being selected
+  if(isset($form['format']['expire_include_base_url'])) {
   $form['format']['expire_include_base_url']['#disabled'] = TRUE;
   $form['format']['expire_include_base_url']['#default_value'] = FALSE;
-  $form['format']['expire_include_base_url']['#description'] = $form['format']['expire_include_base_url']['#description'] . ' <em>' . t('NOTE: This option is disabled when using Expire Aliases (below).') . '</em>';
+    $form['format']['expire_include_base_url']['#description'] = ' <em>' . t('NOTE: This option is disabled when using Expire Aliases (below).') . '</em>';
+  }
   variable_set('expire_include_base_url', FALSE);
 }
 
@@ -39,12 +41,15 @@ function expire_alias_form_expire_admin_settings_form_alter(&$form, &$form_state
  * Rebuilds list of paths to expire based on the domain aliases defined.
  */
 function expire_alias_expire_urls_alter(&$expire, $node = NULL, $paths) {
+  global $base_url;
+  $urls = array();
+  $base_Length = strlen($base_url) + 1; // +1 for the last '/'
   $domainlist = variable_get('expire_alias_domainlist', '');
 
   // Don't do anything to the $expire array if we have no configuration.
   if ($domainlist != '') {
     // Convert our textfield string into an array of domains.
-    $domains = preg_split('/[\r\n]+/', $domainlist, -1, PREG_SPLIT_NO_EMPTY); //@todo can we not just use explode() here?
+    $domains = explode("\r\n", $domainlist);
 
     // Add additional logic for domain module aliases.
     if (module_exists('domain')) {
@@ -71,20 +76,16 @@ function expire_alias_expire_urls_alter(&$expire, $node = NULL, $paths) {
       $domains = array_merge($domains, $domain_urls);
     }
 
-    $urls = array();
 
     // We want a full URL for each expiring path, for each domain.
     foreach (array_unique($expire) as $path) {
+      if($path == '<front>') $path = '';
+      if(substr($path,0,4) == 'http') $path = substr($path,$base_Length);
+      if(substr($path,0,1) == '/') $path = substr($path,1);
       foreach ($domains as $domain) {
-        // Special logic for front page.
-        if ($path == '<front>') {
-          $urls[] = $domain;
-        } else {
-          $urls[] = $domain . '/' . $path;
-        }
+        $urls[$domain . '/' . $path] = $domain . '/' . $path;
       }
     }
-
     $expire = $urls;
   }
 }

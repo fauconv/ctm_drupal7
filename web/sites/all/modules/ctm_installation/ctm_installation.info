@@ -27,7 +27,8 @@ dependencies[] = views
 dependencies[] = ctools
 dependencies[] = view_unpublished
 dependencies[] = page_manager_views
-
+dependencies[] = views_cross_join
+dependencies[] = views_merge_rows
 
 ; Activation des modules lies au menu
 dependencies[] = admin_menu

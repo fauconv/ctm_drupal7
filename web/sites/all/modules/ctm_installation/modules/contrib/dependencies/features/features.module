@@ -556,6 +556,9 @@ function features_get_components($component = NULL, $key = NULL, $reset = FALSE)
     else {
       $components = module_invoke_all('features_api');
       drupal_alter('features_api', $components);
+      // Sort component types by weight.
+      ksort($components);
+      uasort($components, 'drupal_sort_weight');
       cache_set('features_api', $components, 'cache_features');
     }
 
@@ -975,6 +978,12 @@ function _features_restore($op, $items = array()) {
           $items[$module_name][] = $component;
         }
       }
+    }
+  } else {
+    //sort components of items in orders of weight
+    $full_components = array_keys(features_get_components());
+    foreach($items as $feature => $components) {
+      $items[$feature] = array_intersect($full_components, $components);
     }
   }
 

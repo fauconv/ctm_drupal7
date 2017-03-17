@@ -12,40 +12,10 @@
  */
 function ctm_installation_config_roles($profile, &$roles, $op = 'update') {
 
-  if (empty($roles[ADMINISTRATEUR])) {
-    //Cree un role par default pour l'administrateur
-    $admin = new stdClass();
-    $admin->name = ADMINISTRATEUR;
-    $admin->weight = 7;
-    user_role_save($admin);
-  }
-  else {
-    $admin = user_role_load_by_name(ADMINISTRATEUR);
-  }
-  $roles[$admin->name] = $admin->rid;
-  if (empty($roles[ADMIN_SITE])) {
-    //Creation du role admin_site
-    $admin_site = new stdClass();
-    $admin_site->name = ADMIN_SITE;
-    $admin_site->weight = 6;
-    user_role_save($admin_site);
-  }
-  else {
-    $admin_site = user_role_load_by_name(ADMIN_SITE);
-  }
-  $roles[$admin_site->name] = $admin_site->rid;
-  if (empty($roles[CONTRIBUTEUR])) {
-    //Creation du role contributeur
-    $contrib = new stdClass();
-    $contrib->name = CONTRIBUTEUR;
-    $contrib->weight = 4;
-    user_role_save($contrib);
-  }
-  else {
-    $contrib = user_role_load_by_name(CONTRIBUTEUR);
-  }
-  $roles[$contrib->name] = $contrib->rid;
-
+  $admin = ctm_installation_insert_or_update_role($roles, ADMINISTRATEUR, 3);
+  $admin_site = ctm_installation_insert_or_update_role($roles, ADMIN_SITE, 4);  
+  $contrib = ctm_installation_insert_or_update_role($roles, CONTRIBUTEUR, 5);  
+  
   // donne tous les droits a administrateur
   user_role_grant_permissions($admin->rid, array_keys(module_invoke_all('permission')));
 
@@ -60,18 +30,7 @@ function ctm_installation_config_roles($profile, &$roles, $op = 'update') {
     user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array('access content'));
   }
   elseif ($profile == CTM_INTRANET) {
-    if (empty($roles[LECTEUR])) {
-      //Creation du role lecteur
-      $lecteur = new stdClass();
-      $lecteur->name = LECTEUR;
-      $lecteur->weight = 3;
-      user_role_save($lecteur);
-    }
-    else {
-      $lecteur = user_role_load_by_name(LECTEUR);
-    }
-    $roles[$lecteur->name] = $lecteur->rid;
-    //Active permission
+    $reader = ctm_installation_insert_or_update_role($roles, LECTEUR, 6);  
     user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('access content'));
   }
   drupal_static_reset('ctm_installation_user_roles');

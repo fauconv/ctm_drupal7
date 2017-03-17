@@ -203,6 +203,28 @@ function ctm_installation_insert_or_update_field($field) {
   }
 }
 
+
+/**
+ * user role creation wrapper
+ * @param $roles list of roles
+ * @param $name role name
+ * @param $weight sort roles list
+ */
+function ctm_installation_insert_or_update_role(&$roles, $name, $weight) {
+  if (empty($roles[$name])) {
+    //Cree un role
+    $role = new stdClass();
+    $role->name = $name;
+    $role->weight = $weight;
+    user_role_save($role);
+  }
+  else {
+    $role = user_role_load_by_name($name);
+  }
+  $roles[$role->name] = $role->rid;
+  return $role;
+}
+
 /**
  * permet de creer une instance de field lier a un bundle (node ou taxo)
  * @param $instance array(
@@ -660,7 +682,7 @@ function ctm_installation_permission_matrice() {
 }
 
 /**
- * grant ou revoke les types de permissions donnes pour un content type, pour un role
+ * grant ou revoke les types de permissions donnees pour un content type, pour un role
  * @param string $ct_name
  * @param array $types
  */
@@ -696,11 +718,6 @@ function ctm_installation_set_permissions($ct_name, $types, $roles, $grant = 'gr
           'view any unpublished ' . $ct_name . ' content',
       ));
     }
-  }
-  if ($types & CTM_EDIT_PERM) {
-    $perm = array_merge($perm, array(
-        'full edit any ' . $ct_name . ' content',
-    ));
   }
   if ($module == 'user') {
     $permissions = array_keys(module_invoke_all('permission'));

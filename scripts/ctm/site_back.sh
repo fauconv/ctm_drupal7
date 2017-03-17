@@ -10,7 +10,8 @@ function site_back {
       exit 1
     fi
     cd $ABS_DUMP_PATH
-    for D in `find . -maxdepth 1 -type f `
+    file=""
+    for D in `find ${ID}* -maxdepth 1 -type f `
     do
       file=${ABS_DUMP_PATH}/$D
     done

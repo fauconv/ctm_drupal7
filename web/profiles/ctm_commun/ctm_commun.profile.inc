@@ -4,10 +4,6 @@
  * Fichier regroupant toutes les parties commune entre le profil ctm_internet et ctm_intranet pour le fichier .profil
  */
 
-/* etats possibles (voir ctm_mock) */
-define('CTM_PROFIL_NO', 0);
-define('CTM_PROFIL_MOCK', 1);
-
 /**
  * Implements hook_form_FORM_ID_alter().
  * Allows the profile to alter the site configuration form.
@@ -45,10 +41,6 @@ function ctm_commun_install_tasks_alter(&$tasks, $install_state) {
       $tasksTmp['ctm_commun_requirements'] =  array('display_name' => st('Verify Infrastructure'));
     }
     elseif ($key == 'install_configure_form') {
-      $tasksTmp['ctm_commun_form']    =  array(
-        'display_name' => st('Set up Mock'),
-        'type' => 'form',
-      );
       $tasksTmp['ctm_commun_config_after_form'] =  array('display_name' => st('Custom configuration'));
     }
   }
@@ -61,57 +53,6 @@ function ctm_commun_install_tasks_alter(&$tasks, $install_state) {
  */
 function ctm_commun_config_after_form($install_state) {
   ctm_installation_config_all_after($install_state['parameters']['profile'],'install');
-  // activation des modules de securite en consequence (voir ctm_mock_activate)
-  $mode = $install_state['parameters']['ctm_authentication_use'];
-  switch ($mode) {
-    case CTM_PROFIL_MOCK:
-      module_enable(array('ctm_mock'));
-      ctm_mock_activate(CTM_MOCK_MOCK); // on doit l'activer sinon le module reste en mode CTM_MOCK_NO
-      break;
-    default: // CTM_PROFIL_NO
-      break;
-  }
-}
-
-/**
- * configuration du formulaire mock
- */
-function ctm_commun_form() {
-  $module_data = system_rebuild_module_data();
-
-  $options = array(CTM_PROFIL_NO => 'Drupal');
-  $default = CTM_PROFIL_NO;
-  if (isset($module_data['ctm_mock'])) {
-     $options[CTM_PROFIL_MOCK] = 'Mock (only on development environnement)';
-     $default = CTM_PROFIL_MOCK;
-  }
-  $form = array();
-  $form['authentication'] = array(
-    '#type' => 'fieldset',
-    '#title' => st('Authentication System'),
-  );
-  $form['authentication']['authentication_use'] = array(
-    '#type' => 'select',
-    '#title' => st('Authentication System'),
-    '#required' => FALSE,
-    '#options' => $options,
-    '#default_value' => $default,
-  );
-  $form['submit'] = array(
-    '#type' => 'submit',
-    '#value' => st('Continu'),
-  );
-
-  return $form;
-
-}
-
-/**
- * mise a jour de la config mock
- */
-function ctm_commun_form_submit($form, &$form_state) {
-  global $install_state;
-  $install_state['parameters']['ctm_authentication_use'] = $form_state['values']['authentication_use'];
 }
 
 /**

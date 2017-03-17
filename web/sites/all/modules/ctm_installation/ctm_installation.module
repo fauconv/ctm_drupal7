@@ -19,10 +19,10 @@ define('CTM_INTRANET', 'ctm_intranet'); // nom du profil intranet
 define('CTM_THEME', 'ctm'); // theme
 define('CTM_THEME_BACK', 'ctm_back'); // theme back
 //roles
-define('ADMINISTRATEUR', 'developer'); // nom du role administrateur
-define('ADMIN_SITE', 'administrator'); // nom du role admin metier
-define('CONTRIBUTEUR', 'contributor'); // nom du role contributeur
-define('LECTEUR', 'READER'); // nom du role lecteur pour les intranet
+define('ADMINISTRATEUR', 'Developer'); // nom du role administrateur
+define('ADMIN_SITE', 'Administrator'); // nom du role admin metier
+define('CONTRIBUTEUR', 'Contributor'); // nom du role contributeur
+define('LECTEUR', 'Reader'); // nom du role lecteur pour les intranet
 define('ANONYMOUS', 'anonymous user'); // constante qui manque dans drupal
 define('AUTHENTICATED', 'authenticated user'); // constante qui manque dans drupal
 // permission generique
@@ -379,13 +379,6 @@ function ctm_installation_permission() {
           'title' => t('Administer ctm configuration'),
       ),
   );
-  foreach (node_permissions_get_configured_types() as $type) {
-    $info = node_type_get_type($type);
-    $type = check_plain($info->type);
-    $perms['full edit any ' . $type . ' content'] = array(
-        'title' => t('full edit for any %type_name content', array('%type_name' => $info->name)),
-    );
-  }
   return $perms;
 }
 

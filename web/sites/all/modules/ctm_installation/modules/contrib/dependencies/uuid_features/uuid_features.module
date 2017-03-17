@@ -968,3 +968,17 @@ if (!function_exists('entity_load_single_by_uuid')) {
     return entity_load_single($entity_type, $entity_id);
   }
 }
+
+function uuid_features_entity_uuid_presave(&$entity, $entity_type) {
+  // UUID exports entities as arrays, therefore we need to cast the translations
+  // array back into an object.
+  if ($entity_type == 'node' || $entity_type == 'taxonomy_term') {
+    $entity_info = entity_get_info($entity_type);
+    if (isset($entity_info['entity keys']) && isset($entity_info['entity keys']['translations'])) {
+      $key = $entity_info['entity keys']['translations'];
+      if (isset($entity->{$key})) {
+        $entity->{$key} = (object) $entity->{$key};
+      }
+    }
+  }
+}

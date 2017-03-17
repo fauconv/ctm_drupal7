@@ -13,6 +13,7 @@ files[] = plugins/linkit_search/file.class.php
 files[] = plugins/linkit_search/node.class.php
 files[] = plugins/linkit_search/taxonomy_term.class.php
 files[] = plugins/linkit_search/user.class.php
+files[] = plugins/linkit_search/menu_link.class.php
 
 ; Test files
 files[] = test/linkit.test

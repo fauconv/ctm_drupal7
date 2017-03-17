@@ -180,7 +180,6 @@ function finalize {
     rm -f ${ABS_SITE_PATH}/settings.php
     mv ${ABS_SITE_PATH}/settings.php.orig ${ABS_SITE_PATH}/settings.php
   fi
-  cp ${ABS_CONFIG_PATH}/example.mock-default.xml ${ABS_CONFIG_PATH}/mock-${ID}.xml
   cp ${ABS_CONFIG_PATH}/example.masquerade-default.xml ${ABS_CONFIG_PATH}/masquerade-${ID}.xml
   cp ${ABS_SOURCE_PATH}/default.settings.php ${ABS_SITES_PATH}/default
   setRight $ENV

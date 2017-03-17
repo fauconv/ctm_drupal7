@@ -609,7 +609,7 @@ function token_tokens($type, $tokens, array $data = array(), array $options = ar
 
     if (!isset($link['title'])) {
       // Re-load the link if it was not loaded via token_menu_link_load().
-      $link = token_menu_link_load($link['mlid']);
+      $link = token_menu_link_load($link['mlid'], $language_code);
     }
 
     foreach ($tokens as $name => $original) {
@@ -624,17 +624,17 @@ function token_tokens($type, $tokens, array $data = array(), array $options = ar
           $replacements[$original] = url($link['href'], $url_options);
           break;
         case 'parent':
-          if (!empty($link['plid']) && $parent = token_menu_link_load($link['plid'])) {
+          if (!empty($link['plid']) && $parent = token_menu_link_load($link['plid'], $language_code)) {
             $replacements[$original] = $sanitize ? check_plain($parent['title']) : $parent['title'];
           }
           break;
         case 'parents':
-          if ($parents = token_menu_link_load_all_parents($link['mlid'])) {
+          if ($parents = token_menu_link_load_all_parents($link['mlid'], $language_code)) {
             $replacements[$original] = token_render_array($parents, $options);
           }
           break;
         case 'root';
-          if (!empty($link['p1']) && $link['p1'] != $link['mlid'] && $root = token_menu_link_load($link['p1'])) {
+          if (!empty($link['p1']) && $link['p1'] != $link['mlid'] && $root = token_menu_link_load($link['p1'], $language_code)) {
             $replacements[$original] = $sanitize ? check_plain($root['title']) : $root['title'];
           }
           break;
@@ -642,16 +642,16 @@ function token_tokens($type, $tokens, array $data = array(), array $options = ar
     }
 
     // Chained token relationships.
-    if (!empty($link['plid']) && ($source_tokens = token_find_with_prefix($tokens, 'parent')) && $parent = token_menu_link_load($link['plid'])) {
+    if (!empty($link['plid']) && ($source_tokens = token_find_with_prefix($tokens, 'parent')) && $parent = token_menu_link_load($link['plid'], $language_code)) {
       $replacements += token_generate('menu-link', $source_tokens, array('menu-link' => $parent), $options);
     }
     // [menu-link:parents:*] chained tokens.
     if ($parents_tokens = token_find_with_prefix($tokens, 'parents')) {
-      if ($parents = token_menu_link_load_all_parents($link['mlid'])) {
+      if ($parents = token_menu_link_load_all_parents($link['mlid'], $language_code)) {
         $replacements += token_generate('array', $parents_tokens, array('array' => $parents), $options);
       }
     }
-    if (!empty($link['p1']) && $link['p1'] != $link['mlid'] && ($root_tokens = token_find_with_prefix($tokens, 'root')) && $root = token_menu_link_load($link['p1'])) {
+    if (!empty($link['p1']) && $link['p1'] != $link['mlid'] && ($root_tokens = token_find_with_prefix($tokens, 'root')) && $root = token_menu_link_load($link['p1'], $language_code)) {
       $replacements += token_generate('menu-link', $root_tokens, array('menu-link' => $root), $options);
     }
     if ($url_tokens = token_find_with_prefix($tokens, 'url')) {
