@@ -64,7 +64,6 @@ nbproject/**/*
 /config/parameters-*
 /config/sites.php
 /drush/site-aliases/*
-/dump/*
 /scripts/@*
 
 # Drupal files and contrib
