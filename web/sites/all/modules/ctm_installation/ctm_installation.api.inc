@@ -626,7 +626,7 @@ function ctm_installation_get_permission_matrice() {
   }
   $types = array_keys(node_type_get_names());
   foreach ($types as $type) {
-    $matrice['user'][$type] = $matrice['default'];
+    $matrice['user'][$type] = $matrice['user']['default'];
   }
   drupal_alter('installation_permission_matrice', $matrice);
   return $matrice;
@@ -905,7 +905,7 @@ function ctm_installation_set_permissions($ct, $group, $role, $grant = 'grant', 
           continue;
       }
       if ($new_perm != '') {
-        $var['user_permissions'][$new_perm][$tabRoles[$roles]] = $tabRoles[$role];
+        $var['user_permissions'][$new_perm][$tabRoles[$role]] = $tabRoles[$role];
       }
       variable_set('content_type_extras_default_settings', $var);
     }

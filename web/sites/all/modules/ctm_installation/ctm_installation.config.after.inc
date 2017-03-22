@@ -13,38 +13,6 @@
  */
 function ctm_installation_config_permissions_after($profile, $roles, $op = 'update') {
   
-  // ADMINISTRATEUR management
-  user_role_grant_permissions($roles[ADMINISTRATEUR], array_keys(module_invoke_all('permission')));
-  $permissions = array_keys(module_invoke_all('permission'));
-  $permission_list = array(
-      'show format tips',
-      'show more format tips link',
-      'customize ckeditor',
-      'publish any content',
-      'unpublish any content',
-      'publish editable content',
-      'unpublish editable content',
-      'allow users to pick menu_link templates',
-      'allow users to pick user templates',
-      'allow users to pick features templates',
-      'allow users to pick main-menu templates',
-      'allow users to pick management templates',
-      'allow users to pick navigation templates',
-      'allow users to pick user-menu templates',
-      'allow users to pick rules_config templates',
-  );
-  $permission_list = array_intersect($permission_list, $permissions);
-  user_role_revoke_permissions($roles[ADMINISTRATEUR], $permission_list);
-  ctm_installation_queue_add_role(array(1), $roles[ADMINISTRATEUR]);
-
-  //cas specifique au profil d'install
-  if ($profile == CTM_INTERNET) {
-    user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array('access content', 'display EU Cookie Compliance popup'));
-  }
-  elseif ($profile == CTM_INTRANET) {
-    user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('access content'));
-  }
-  
   //create ADMIN_SITE
   if ($op != 'update') {
     $base_root_list = variable_get('base_root_list');
