@@ -80,8 +80,8 @@ function hook_installation_alias() {
 
 /*
  * create/update a list of permission associated to a group name. 
- * the permission list is given by a function callback which take content type 
- * name as parameter
+ * the permission list is given by a function callback which take role name and 
+ * content type name as parameters
  */
 function hook_installation_permissions() {
   return array(
@@ -108,7 +108,7 @@ function hook_installation_permissions() {
  *    'admin' => administration permissions
  * @param type $matrice
  */
-function hook_installation_permission_matrice_alter(&$matrice) {
+function hook_installation_permission_matrix_alter(&$matrice) {
   foreach ($matrice as $key => $value) {
     foreach ($value as $key2 => $value2) {
       $matrice[$key][$key2][CONTRIBUTEUR] = ctm_installation_get_true_perms();

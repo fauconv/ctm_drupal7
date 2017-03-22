@@ -54,7 +54,7 @@ function ctm_installation_config_auto_perm_queue($profile, &$roles, $op = 'updat
     user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('access content'));
   }
   
-  $matrice = ctm_installation_get_permission_matrice();
+  $matrice = ctm_installation_get_permission_matrix();
   foreach($matrice as $module => $cts) {
     foreach($cts as $ct => $rolesMat) {
       if($ct != 'default') {

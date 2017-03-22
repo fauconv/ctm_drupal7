@@ -10,6 +10,7 @@ global $ctm_installation_dir;
 $ctm_installation_dir = dirname(__FILE__);
 require $ctm_installation_dir . '/ctm_installation.queue.inc'; // librairie pour le systeme de queue
 require $ctm_installation_dir . '/ctm_installation.api.inc'; // librairie de fonctions utilisable par les features
+require $ctm_installation_dir . '/ctm_installation.permissions.api.inc'; // librairie de fonctions utilisable pour la gestion des droits
 
 // attention si vous changez les constantes ci-dessous il faut adapter les features en consequence
 //theme et profil
@@ -974,7 +975,6 @@ function ctm_installation_preprocess_html(&$variables) {
   }
 }
 function ctm_installation_installation_permissions() {
-  include_once(__DIR__.'/ctm_installation_permission.inc');
   return array(
     'create' => array('ctm_installation_create_perm'), 
     'read' => array('ctm_installation_read_perm'),
