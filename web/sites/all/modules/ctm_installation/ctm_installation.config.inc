@@ -7,32 +7,20 @@
  */
 
 /**
- * dans le cas de l install :cree les roles par default et initialise les permission
- * dans le cas de la reeinit : reactive les permissions par defaut mais n'enleve pas les permission existante
+ * dans le cas de l install :cree les roles par default
  */
 function ctm_installation_config_roles($profile, &$roles, $op = 'update') {
 
   $admin = ctm_installation_insert_or_update_role($roles, ADMINISTRATEUR, 3);
-  $admin_site = ctm_installation_insert_or_update_role($roles, ADMIN_SITE, 4);  
-  $contrib = ctm_installation_insert_or_update_role($roles, CONTRIBUTEUR, 5);  
-  
-  // donne tous les droits a administrateur
-  user_role_grant_permissions($admin->rid, array_keys(module_invoke_all('permission')));
+  $admin_site = ctm_installation_insert_or_update_role($roles, ADMIN_SITE, 4);
 
   //Initialise le role administrateur du site.
   variable_set('user_admin_role', $admin->rid);
 
   //Seul l admin peut creer un compte
   variable_set('user_register', USER_REGISTER_ADMINISTRATORS_ONLY);
+  variable_set('user_mail_status_activated_notify', 0);
 
-  //cas specifique au profil d'install
-  if ($profile == CTM_INTERNET) {
-    user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array('access content'));
-  }
-  elseif ($profile == CTM_INTRANET) {
-    $reader = ctm_installation_insert_or_update_role($roles, LECTEUR, 6);  
-    user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('access content'));
-  }
   drupal_static_reset('ctm_installation_user_roles');
 }
 
@@ -41,6 +29,72 @@ function ctm_installation_config_roles($profile, &$roles, $op = 'update') {
  */
 function ctm_installation_config_rules($profile, $roles, $op = 'update') {
   variable_set('rules_path_cleaning_callback', "rules_path_clean_pathauto");
+}
+
+/**
+ * configuration content_type_extras
+ */
+function ctm_installation_config_content_type_extras($profile, $roles, $op = 'update') {
+  variable_set('content_type_extras_cancel_block', '1');
+  variable_set('content_type_extras_default_settings', array(
+      'title_label' => 'Title',
+      'node_preview' => '1',
+      'content_type_extras_preview_button' => 'Preview',
+      'content_type_extras_save_and_new' => '1',
+      'content_type_extras_save_and_new_button' => 'Save and New',
+      'content_type_extras_save_and_edit' => '1',
+      'content_type_extras_save_and_edit_button' => 'Save and Edit',
+      'content_type_extras_cancel' => '1',
+      'node_options' => array(
+          'status' => 0,
+          'promote' => 0,
+          'sticky' => 0,
+          'revision' => 0,
+      ),
+      'node_submitted' => 0,
+      'user_permissions' => array(
+          'create_roles' => array(
+              $roles[ADMIN_SITE] => $roles[ADMIN_SITE],
+              $roles[ADMINISTRATEUR] => $roles[ADMINISTRATEUR],
+          ),
+          'edit_roles' => array(
+              $roles[ADMIN_SITE] => $roles[ADMIN_SITE],
+              $roles[ADMINISTRATEUR] => $roles[ADMINISTRATEUR],
+          ),
+          'edit_own_roles' => array(),
+          'delete_roles' => array(
+              $roles[ADMIN_SITE] => $roles[ADMIN_SITE],
+              $roles[ADMINISTRATEUR] => $roles[ADMINISTRATEUR],
+          ),
+          'delete_own_roles' => array(),
+      ),
+      'content_type_extras_descriptions_required' => 0,
+      'content_type_extras_remove_body' => 1,
+      'content_type_extras_title_hide' => 0,
+      'content_type_extras_title_hide_css' => 0,
+      'content_type_extras_title_hide_front' => 0,
+      'content_type_extras_top_buttons' => array(
+          'manage_fields' => 'manage_fields',
+          'node_edit' => 'node_edit',
+      ),
+      'content_type_extras_excluded_node_forms' => array(
+          '0' => '',
+      ),
+      'xmlsitemap_settings' => array(
+          'status' => 0,
+          'priority' => 0.5,
+      ),
+      'scheduler_settings' => array(
+          'publish_enable' => 1,
+          'publish_touch' => 0,
+          'publish_require' => 0,
+          'publish_revision' => 0,
+          'unpublish_enable' => 1,
+          'unpublish_require' => 0,
+          'unpublish_revision' => 0,
+      ),
+      'content_type_extras__active_tab' => 'edit-configuration',
+  ));
 }
 
 /**
@@ -118,9 +172,9 @@ function ctm_installation_config_date($profile, $roles, $op = 'update') {
   variable_set('date_format_month', 'F');
   variable_set('date_format_month_year', 'F Y');
   variable_set('date_format_year', 'Y');
-  variable_set('date_format_day_hour', 'l j \ÃƒÂ  G\hi');
-  variable_set('date_format_month_hour', 'l j F \ÃƒÂ  G\hi');
-  variable_set('date_format_year_hour', 'l j M Y \ÃƒÂ  G\hi');
+  variable_set('date_format_day_hour', 'l j \à G\hi');
+  variable_set('date_format_month_hour', 'l j F \à G\hi');
+  variable_set('date_format_year_hour', 'l j M Y \à G\hi');
 }
 
 /**
@@ -149,10 +203,6 @@ function ctm_installation_config_admin_menu($profile, $roles, $op = 'update') {
   variable_set('admin_menu_tweak_permissions', 1);
   //Desactive des composant du menu admin
   variable_set('admin_menu_components', array('admin_menu.icon' => 1, 'admin_menu.menu' => 1, 'admin_menu.account' => 1));
-
-  //permissions
-  user_role_grant_permissions($roles[ADMIN_SITE], array('access administration menu', 'flush caches'));
-  user_role_grant_permissions($roles[CONTRIBUTEUR], array('access administration menu', 'flush caches'));
 }
 
 /**
@@ -187,167 +237,11 @@ function ctm_installation_config_views($profile, $roles, $op = 'update') {
 }
 
 /**
- * Active le theme admin et le theme par default
- */
-function ctm_installation_config_themes($profile, $roles, $op = 'update') {
-
-  if ($profile != CTM_INTERNET && $profile != CTM_INTRANET) {
-    return;
-  }
-  //Initialise le theme admin
-  variable_set('admin_theme', CTM_THEME_BACK);
-  variable_set('node_admin_theme', '1');
-
-  //Active le theme par default
-  db_update('system')
-      ->fields(array('status' => 1))
-      ->condition('type', 'theme')
-      ->condition('name', CTM_THEME)
-      ->execute();
-  variable_set('theme_default', CTM_THEME);
-
-  theme_disable(array('bartik'));
-}
-
-/**
  * config global pathologic
  */
 function ctm_installation_config_pathologic($profile, $roles, $op = 'update') {
   variable_set('pathologic_local_paths',ctm_installation_get_base_url_str());
   variable_set('pathologic_protocol_style','path');
-}
-
-/**
- * configuration des formats de texte et des profils ctm_internet
- */
-function ctm_installation_config_format_texte($profile, $roles, $op = 'update') {
-  $largeurs = variable_get('ckeditor_sizes', array('100' => 'p;h2;h3;h4;h5;h6;address;div'));
-
-  $pathologic = array(
-      'weight' => 50,
-      'status' => 1,
-      'settings' => array(
-          'settings_source' => 'global',
-      ),
-  );
-
-  $filter_htmlcorrector = array(
-      'weight' => 10,
-      'status' => 1,
-      'settings' => array(),
-  );
-
-  $contenteditable = array(
-      'weight' => 9,
-      'status' => 1,
-      'settings' => array(),
-  );
-
-  $image_resize_filter = array(
-      'weight' => 0,
-      'status' => 1,
-      'settings' => array(
-          'link' => 1,
-          'link_class' => 'fancybox',
-          'link_rel' => '',
-          'image_locations' => array(
-              'local' => 'local',
-              'remote' => 0,
-          ),
-      ),
-  );
-
-  //Formats
-  $format = new stdClass();
-  $format->cache = 1;
-  $format->status = 1;
-
-  // Exported format: Mail.
-  $format->format = 'mail';
-  $format->name = 'Mail';
-  $format->weight = 3;
-  $format->filters = array('filter_htmlcorrector' => $filter_htmlcorrector);
-  filter_format_save($format);
-
-  /////////////////////////////////////////////3 ///////////////////////////////////////////////////
-  //
-  $format->filters = array(
-      'ctm_contenteditable' => $contenteditable,
-      'filter_htmlcorrector' => $filter_htmlcorrector,
-      'pathologic' => $pathologic,
-      'image_resize_filter' => $image_resize_filter,
-  );
-
-  $format_name = array();
-  $name = array();
-  foreach ($largeurs as $largeur => $format_texte) {
-    $format_name[] = 'ckeditor_images_' . $largeur;
-    $format_name[] = 'ckeditor_images_liens_' . $largeur;
-    $name[] = 'Editeur - images - ' . $largeur;
-    $name[] = 'Editeur - images - liens - ' . $largeur;
-  }
-
-  foreach ($format_name as $key => $fn) {
-    $format->format = $fn;
-    $format->name = $name[$key];
-    $format->weight = $key - 10;
-    filter_format_save($format);
-  }
-
-
-  /////////////////////////////////////////// 2 /////////////////////////////////////////////////////
-
-  $format->filters = array(
-      'ctm_contenteditable' => $contenteditable,
-      'filter_htmlcorrector' => $filter_htmlcorrector,
-      'pathologic' => $pathologic,
-  );
-
-  $format_name_deux = array(
-      'html',
-  );
-
-  $name_deux = array(
-      'HTML',
-  );
-  foreach ($largeurs as $largeur => $format_texte) {
-    $format_name_deux[] = 'ckeditor_minimal_' . $largeur;
-    $format_name_deux[] = 'ckeditor_' . $largeur;
-    $format_name_deux[] = 'ckeditor_liens_' . $largeur;
-    $name_deux[] = 'Editeur - Minimal - ' . $largeur;
-    $name_deux[] = 'Editeur - ' . $largeur;
-    $name_deux[] = 'Editeur - liens - ' . $largeur;
-  }
-
-  foreach ($format_name_deux as $key => $fn) {
-    $format->format = $fn;
-    $format->name = $name_deux[$key];
-    $format->weight = $key - 4;
-    filter_format_save($format);
-  }
-
-  //permissions
-  user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('use text format mail'));
-  foreach ($format_name as $sysname) {
-    user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('use text format ' . $sysname));
-  }
-  foreach ($format_name_deux as $sysname) {
-    user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('use text format ' . $sysname));
-  }
-
-  // php filter
-  $format->filters = array(
-      'php_code' => array(
-          'weight' => 10,
-          'status' => 1,
-          'settings' => array(),
-      ),
-  );
-  $format->format = 'php_code';
-  $format->name = 'PHP code';
-  $format->weight = 4;
-  filter_format_save($format);
-  user_role_grant_permissions($roles[ADMINISTRATEUR], array('use text format php_code'));
 }
 
 /**
@@ -648,325 +542,6 @@ function ctm_installation_config_masquerade($profile, $roles, $op = 'update') {
 }
 
 /**
- * configuration des profils de ckeditor
- */
-function ctm_installation_config_ckeditor($profile, $roles, $op = 'update') {
-  $path = drupal_get_path('module', 'ctm_installation');
-  $toolbar = "
-    ['Cut','Copy','Paste','PasteText','PasteFromWord'],
-    ['BulletedList','NumberedList','-','Table','HorizontalRule','SpecialChar','Abbr','Templates'],
-    ['Undo','Redo','Find','Replace','SpellChecker','Scayt'],
-    ['ShowBlocks','SelectAll','RemoveFormat','Source']
-    ";
-  $toolbar_plus = "
-    [['Bold','Italic','Underline','Subscript','Superscript','Strike','-','JustifyLeft','JustifyCenter','JustifyRight','JustifyBlock','-','Outdent','Indent'],
-    ['Format','Styles'],
-    " . $toolbar;
-  $toolbar = "[".$toolbar."]";
-  $toolbar_images = $toolbar_plus . ",['EnhancedImage','Flash','MediaEmbed','ImageMaps']]";
-  $toolbar_liens = $toolbar_plus . ",['Link','linkit','Unlink','Anchor']]";
-  $toolbar_images_liens = $toolbar_plus . ",['Link','linkit','Unlink','Anchor'],['EnhancedImage','Flash','MediaEmbed','ImageMaps']]";
-  $toolbar_plus .= "]";
-  $linkit_config = array(
-      'name' => 'linkit',
-      'desc' => 'Prise en charge du module Linkit',
-      'path' => '%base_path%' . drupal_get_path('module', 'linkit') . '/editors/ckeditor/',
-      'buttons' => array(
-          'linkit' => array(
-              'label' => 'Linkit',
-              'icon' => 'linkit.png',
-          ),
-      ),
-  );
-  $mediaembed_config = array(
-      'name' => 'mediaembed',
-      'desc' => 'Plugin for inserting Drupal embeded media',
-      'path' => '%plugin_dir%mediaembed/',
-      'buttons' => array(
-          'MediaEmbed' => array(
-              'label' => 'MediaEmbed',
-              'icon' => 'images/icon.png',
-          ),
-      ),
-  );
-  $largeurs = variable_get('ckeditor_sizes', array('100' => 'p;h2;h3;h4;h5;h6;address;div')); // largeur du bloc ckeditor
-  $color = variable_get('ckeditor_color', '#64A0B4'); // couleur de la toolbar de ckeditor
-  //Supprime les profil advanced et full et la config global
-  $condi = db_or()->condition('name', 'Advanced')
-      ->condition('name', 'Full')
-      ->condition('name', 'CKEditor Global Profile');
-
-  db_delete('ckeditor_settings')->condition($condi)
-      ->execute();
-  db_delete('ckeditor_input_format')->condition($condi)
-      ->execute();
-
-  //-------------------------------------------------------------- config general -----------------------------------------------
-  $data = array(
-      'name' => 'CKEditor Global Profile',
-      'settings' => array(
-          'skin' => 'moonocolor',
-          'ckeditor_path' => '%l/ckeditor',
-          'ckeditor_local_path' => '',
-          'ckeditor_plugins_path' => '%m/plugins',
-          'ckeditor_plugins_local_path' => '',
-          'ckfinder_path' => '%m/ckfinder',
-          'ckfinder_local_path' => '',
-          'ckeditor_aggregate' => 'f',
-          'toolbar_wizard' => 't',
-          'loadPlugins' => array(),
-      ),
-      'input_formats' => array(),
-  );
-  _ctm_installation_create_ckeditor_profil($data);
-
-  //----------------------------------------------------------------largeur normal------------------------------------------------------
-  //ckeditor_bloc
-
-  $data = array(
-      'settings' => array(
-          'ss' => 2,
-          'toolbar' => $toolbar,
-          'expand' => 't',
-          'default' => 't',
-          'show_toggle' => 'f',
-          'uicolor' => 'custom',
-          'uicolor_user' => $color,
-          'lang' => 'fr',
-          'auto_lang' => 'f',
-          'language_direction' => 'ltr',
-          'allowed_content' => 't',
-          'extraAllowedContent' => '',
-          'enter_mode' => 'p',
-          'shift_enter_mode' => 'br',
-          'custom_formatting' => 't',
-          'formatting' => array(
-              'custom_formatting_options' => array(
-                  'indent' => 'indent',
-                  'breakBeforeOpen' => 'breakBeforeOpen',
-                  'breakAfterOpen' => 'breakAfterOpen',
-                  'breakBeforeClose' => 'breakBeforeClose',
-                  'breakAfterClose' => 'breakAfterClose',
-                  'pre_indent' => 0,
-              ),
-          ),
-          'css_mode' => 'none',
-          'css_path' => '',
-          'css_style' => 'default',
-          'styles_path' => '',
-          'filebrowser' => 'imce',
-          'filebrowser_image' => 'imce',
-          'filebrowser_flash' => 'imce',
-          'UserFilesPath' => '%b%f/',
-          'UserFilesAbsolutePath' => '%d%b%f/',
-          'forcePasteAsPlainText' => 'f',
-          'html_entities' => 'f',
-          'scayt_autoStartup' => 't',
-          'theme_config_js' => 'f',
-          'js_conf' => '',
-          'loadPlugins' => array_merge(ctm_installation_ckeditor_plugin(TRUE), array(
-              'counter' => array(
-                  'name' => 'counter',
-                  'desc' => 'Plugin to count symbols, symbols without blanks and words',
-                  'path' => '%plugin_dir%counter/',
-                  'buttons' => FALSE,
-                  'default' => 'f',
-              ),
-              )
-          ),
-      ),
-      'input_formats' => array(
-      ),
-  );
-
-  // minimal
-  foreach ($largeurs as $largeur => $format_texte) {
-    $data['name'] = 'ckeditor_minimal_' . $largeur;
-    $data['settings']['width'] = $largeur;
-    $data['settings']['font_format'] = $format_texte;
-    $data['input_formats'] = array($data['name'] => 'Editeur - Minimal - ' . $largeur);
-    _ctm_installation_create_ckeditor_profil($data);
-  }
-
-  //normal
-  foreach ($largeurs as $largeur => $format_texte) {
-    $data['settings']['toolbar'] = $toolbar_plus;
-    $data['name'] = 'ckeditor_' . $largeur;
-    $data['settings']['width'] = $largeur;
-    $data['settings']['font_format'] = $format_texte;
-    $data['input_formats'] = array($data['name'] => 'Editeur - ' . $largeur);
-    _ctm_installation_create_ckeditor_profil($data);
-  }
-
-  //ckeditor_images
-  $data['settings']['toolbar'] = $toolbar_images;
-  $data['settings']['loadPlugins']['mediaembed'] = $mediaembed_config;
-  $data['input_formats'] = array($data['name'] => 'Ckeditor - images - block');
-  foreach ($largeurs as $largeur => $format_texte) {
-    $data['name'] = 'ckeditor_images_' . $largeur;
-    $data['settings']['width'] = $largeur;
-    $data['settings']['font_format'] = $format_texte;
-    $data['input_formats'] = array($data['name'] => 'Editeur - images - ' . $largeur);
-    _ctm_installation_create_ckeditor_profil($data);
-  }
-
-  //ckeditor_liens_et_images
-  $data['settings']['toolbar'] = $toolbar_images_liens;
-  $data['settings']['loadPlugins']['linkit'] = $linkit_config;
-  foreach ($largeurs as $largeur => $format_texte) {
-    $data['name'] = 'ckeditor_images_liens_' . $largeur;
-    $data['settings']['width'] = $largeur;
-    $data['settings']['font_format'] = $format_texte;
-    $data['input_formats'] = array($data['name'] => 'Editeur - images - liens - ' . $largeur);
-    _ctm_installation_create_ckeditor_profil($data);
-  }
-
-  //ckeditor_liens
-  $data['settings']['toolbar'] = $toolbar_liens;
-  unset($data['settings']['loadPlugins']['mediaembed']);
-  foreach ($largeurs as $largeur => $format_texte) {
-    $data['name'] = 'ckeditor_liens_' . $largeur;
-    $data['settings']['width'] = $largeur;
-    $data['settings']['font_format'] = $format_texte;
-    $data['input_formats'] = array($data['name'] => 'Editeur - liens - ' . $largeur);
-    _ctm_installation_create_ckeditor_profil($data);
-  }
-}
-
-/**
- * configuration content_type_extras
- */
-function ctm_installation_config_content_type_extras($profile, $roles, $op = 'update') {
-  variable_set('content_type_extras_cancel_block', '1');
-  variable_set('content_type_extras_default_settings', array(
-      'title_label' => 'Title',
-      'node_preview' => '1',
-      'content_type_extras_preview_button' => 'Preview',
-      'content_type_extras_save_and_new' => '1',
-      'content_type_extras_save_and_new_button' => 'Save and New',
-      'content_type_extras_save_and_edit' => '1',
-      'content_type_extras_save_and_edit_button' => 'Save and Edit',
-      'content_type_extras_cancel' => '1',
-      'node_options' => array(
-          'status' => 0,
-          'promote' => 0,
-          'sticky' => 0,
-          'revision' => 0,
-      ),
-      'node_submitted' => 0,
-      'user_permissions' => array(
-          'create_roles' => array(
-              $roles[CONTRIBUTEUR] => $roles[CONTRIBUTEUR],
-              $roles[ADMIN_SITE] => $roles[ADMIN_SITE],
-              $roles[ADMINISTRATEUR] => $roles[ADMINISTRATEUR],
-          ),
-          'edit_roles' => array(
-              $roles[CONTRIBUTEUR] => $roles[CONTRIBUTEUR],
-              $roles[ADMIN_SITE] => $roles[ADMIN_SITE],
-              $roles[ADMINISTRATEUR] => $roles[ADMINISTRATEUR],
-          ),
-          'edit_own_roles' => array(),
-          'delete_roles' => array(
-              $roles[CONTRIBUTEUR] => $roles[CONTRIBUTEUR],
-              $roles[ADMIN_SITE] => $roles[ADMIN_SITE],
-              $roles[ADMINISTRATEUR] => $roles[ADMINISTRATEUR],
-          ),
-          'delete_own_roles' => array(),
-      ),
-      'content_type_extras_descriptions_required' => 0,
-      'content_type_extras_remove_body' => 1,
-      'content_type_extras_title_hide' => 0,
-      'content_type_extras_title_hide_css' => 0,
-      'content_type_extras_title_hide_front' => 0,
-      'content_type_extras_top_buttons' => array(
-          'manage_fields' => 'manage_fields',
-          'node_edit' => 'node_edit',
-      ),
-      'content_type_extras_excluded_node_forms' => array(
-          '0' => '',
-      ),
-      'xmlsitemap_settings' => array(
-          'status' => 0,
-          'priority' => 0.5,
-      ),
-      'scheduler_settings' => array(
-          'publish_enable' => 1,
-          'publish_touch' => 0,
-          'publish_require' => 0,
-          'publish_revision' => 0,
-          'unpublish_enable' => 1,
-          'unpublish_require' => 0,
-          'unpublish_revision' => 0,
-      ),
-      'content_type_extras__active_tab' => 'edit-configuration',
-  ));
-}
-
-/**
- * Ajout des configuration pour le type de contenu page de base
- */
-function ctm_installation_config_content_type_page_base($profile, $roles, $op = 'update') {
-  $type = 'page_de_base';
-  $field_name = 'texte_page_base';
-  $content_type_bundle = array(
-      'name' => 'Page',
-      'description' => 'To create a basic page',
-      'title_label' => 'Title',
-      'type' => $type,
-      'module' => 'ctm_installation',
-      'base' => 'node_content',
-      'locked' => 1,
-      'custom' => 0,
-  );
-  $content_type_bundle = node_type_set_defaults($content_type_bundle);
-  node_type_save($content_type_bundle);
-  $bundle_settings = field_bundle_settings('node', $content_type_bundle->type);
-  $bundle_settings['view_modes']['teaser']['custom_settings'] = FALSE;
-  field_bundle_settings('node', $content_type_bundle->type, $bundle_settings);
-
-  // champs texte
-  $field_texte_page_base = array(
-      'field_name' => $field_name,
-      'entity_types' => array('node'),
-      'type' => 'text_long',
-  );
-  ctm_installation_insert_or_update_field($field_texte_page_base);
-
-  $largeurs = array_keys(variable_get('ckeditor_sizes', array('100' => 'p;h2;h3;h4;h5;h6;address;div')));
-  end($largeurs);
-  $format_name = 'ckeditor_images_liens_' . key($largeurs);
-  $instances_texte_page_base = array(
-      'field_name' => $field_name,
-      'entity_type' => 'node',
-      'bundle' => $type,
-      'label' => 'Text',
-      'display' => array(
-          'default' => array(
-              'label' => 'hidden',
-              'type' => 'text_default',
-              'weight' => 0,
-          ),
-      ),
-      'settings' => array(
-          'text_processing' => '1',
-          'better_formats' => array(
-              'allowed_formats_toggle' => 1,
-              'allowed_formats' => array(
-                  $format_name => $format_name,
-              ),
-              'default_order_toggle' => 0,
-          ),
-          'user_register_form' => FALSE,
-      ),
-      'widget' => array('type' => 'text_textarea'),
-  );
-  ctm_installation_insert_or_update_field_instance($instances_texte_page_base);
-
-  //Permission du contenu
-  ctm_installation_set_default_content_type_datas($type, $roles, $profile, array($field_name));
-}
-
-/**
  * Active les blocs standard
  */
 function ctm_installation_config_blocks($profile, $roles, $op = 'update') {
@@ -1245,25 +820,6 @@ function ctm_installation_config_cron_jobs($profile, $roles, $op = 'update') {
       'early_page_flush' => 1,
       'user_agent' => 'Ultimate Cron',
   ));
-}
-
-/**
- * Cree un profil ckeditor et assigne leur format de texte
- * @param $data : array('name'=>string, 'settings'=>array, 'input_formats'=>array)
- */
-function _ctm_installation_create_ckeditor_profil($data) {
-  $values = array(
-      "name" => $data['name'],
-      "settings" => serialize($data['settings']));
-  ctm_installation_insert_or_update('ckeditor_settings', array($values), array('name'));
-
-  if (!empty($data['input_formats'])) {
-    $values = array();
-    foreach (array_keys($data['input_formats']) as $format) {
-      $values[] = array("name" => $data['name'], "format" => $format);
-    }
-    ctm_installation_insert_or_update('ckeditor_input_format', $values, array('name'));
-  }
 }
 
 /**

@@ -10,8 +10,7 @@ global $ctm_installation_dir;
 $ctm_installation_dir = dirname(__FILE__);
 require $ctm_installation_dir . '/ctm_installation.queue.inc'; // librairie pour le systeme de queue
 require $ctm_installation_dir . '/ctm_installation.api.inc'; // librairie de fonctions utilisable par les features
-//-------------------------------------------------- CONSTANTS ----------------------------------------------- //
-//
+
 // attention si vous changez les constantes ci-dessous il faut adapter les features en consequence
 //theme et profil
 define('CTM_INTERNET', 'ctm_internet'); // nom du profil internet
@@ -21,20 +20,11 @@ define('CTM_THEME_BACK', 'ctm_back'); // theme back
 //roles
 define('ADMINISTRATEUR', 'Developer'); // nom du role administrateur
 define('ADMIN_SITE', 'Administrator'); // nom du role admin metier
-define('CONTRIBUTEUR', 'Contributor'); // nom du role contributeur
-define('LECTEUR', 'Reader'); // nom du role lecteur pour les intranet
 define('ANONYMOUS', 'anonymous user'); // constante qui manque dans drupal
 define('AUTHENTICATED', 'authenticated user'); // constante qui manque dans drupal
-// permission generique
-define('CTM_PUBLISH_PERM', 0x1); // 0b1
-define('CTM_CREATE_PERM', 0x2); // 0b10
-define('CTM_COMMENT_PERM', 0x4); // 0b100
-define('CTM_EDIT_PERM', 0x8); // 0b1000
-define('CTM_DELETE_PERM', 0x10); // 0b10000
-define('CTM_ALL_PERM', 0x1F); // 0b11111
+
 //autre
 define('CTM_PKG_CLIENT', 'client'); // nom du package des features gerable par le client
-//--------------------------------------- FONCTIONS HELPER ----------------------------------------------- //
 
 /**
  * return the list of development module to deactivate each night
@@ -982,4 +972,15 @@ function ctm_installation_preprocess_html(&$variables) {
       drupal_add_css('#admin-menu {background-image: none !important; background-color: #108810 !important;}', 'inline');
       break;
   }
+}
+function ctm_installation_installation_permissions() {
+  include_once(__DIR__.'/ctm_installation_permission.inc');
+  return array(
+    'create' => array('ctm_installation_create_perm'), 
+    'read' => array('ctm_installation_read_perm'),
+    'update' => array('ctm_installation_update_perm'),
+    'delete' => array('ctm_installation_delete_perm'),
+    'publish' => array('ctm_installation_publish_perm'),
+    'admin' => array('ctm_installation_admin_perm')
+  );
 }

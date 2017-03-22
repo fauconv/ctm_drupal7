@@ -451,50 +451,6 @@ function ctm_installation_activate_views($view_list) {
 }
 
 /**
- * Ajoute un element dans un array a une posisiton donnee
- * peut etre amelirorer en utlisant array_splice
- * @param array $pArray reference du tableau
- * @param string $keyAfter clef de reference suivante existante (ou vide si ajout a la fin du tableau)
- * @param string $keyAdd clef a ajoute
- * @param mixed $valueAdd valeur a ajouter (tous types)
- */
-function ctm_installation_stack_in_array(&$pArray, $keyAfter, $keyAdd, $valueAdd) {
-
-  // Si la clef existe deja on vient remplacer purement et simplement sa valeur et on sort directement.
-  if (isset($pArray[$keyAdd])) {
-    $pArray[$keyAdd] = $valueAdd;
-    return true;
-  }
-
-  $old_values = $pArray;
-  $pArray = array();
-  $xPass = 0;
-  foreach ($old_values as $key => $value) {
-    if ($key == $keyAfter) {
-      $pArray[$keyAdd] = $valueAdd;
-      $xPass = 1;
-    }
-    $pArray[$key] = $value;
-  }
-  if ($xPass == 0) { // Si la clef de ref n'a pas ete trouvee, on vient empiler a la fin du array la nouvelle clef et sa valeur
-    $pArray[$keyAdd] = $valueAdd;
-  }
-}
-
-/**
- * une fois qu'un content type block est cree, permet de positionner les permission en after form !
- */
-function ctm_installation_set_default_block_perms($type, $roles, $profile) {
-  $permission_list_node = array(
-      'override ' . $type . ' revision option',
-      'override ' . $type . ' published option', // sera masquer en css c est juste pour avoir l info
-  );
-  user_role_grant_permissions($roles[ADMIN_SITE], $permission_list_node);
-  user_role_grant_permissions($roles[ADMINISTRATEUR], $permission_list_node);
-  ctm_installation_set_permissions($type, CTM_ALL_PERM, array(ADMIN_SITE, ADMINISTRATEUR));
-}
-
-/**
  * une fois qu'un content type block est cree, permet de positionner les valeurs
  * par default des element autour du content type :
  * -variables
@@ -537,33 +493,8 @@ function ctm_installation_set_default_display_cache_field($type, $fields) {
 }
 
 /**
- * une fois qu'un content type standard est cree, permet de positionner les permissions en after form
- */
-function ctm_installation_set_default_content_type_perms($type, $roles, $profile) {
-
-  ctm_installation_set_default_block_perms($type, $roles, $profile);
-
-  $permission_list_node = array(
-      'enter ' . $type . ' revision log entry',
-      'override ' . $type . ' revision option',
-      'override ' . $type . ' promote to front page option',
-      'override ' . $type . ' sticky option',
-  );
-  user_role_grant_permissions($roles[CONTRIBUTEUR], $permission_list_node);
-  $permission_list_node = array_merge($permission_list_node, array(
-      'override ' . $type . ' promote to front page option',
-      'override ' . $type . ' sticky option',
-  ));
-  user_role_grant_permissions($roles[ADMIN_SITE], $permission_list_node);
-  user_role_grant_permissions($roles[ADMINISTRATEUR], $permission_list_node);
-
-  ctm_installation_set_permissions($type, CTM_ALL_PERM, array(CONTRIBUTEUR));
-}
-
-/**
  * une fois qu'un content type standard est cree, permet de positionner les valeurs
  * par default des element autour du content type :
- * -permission
  * -variables
  * -scheduler
  * -linkit
@@ -610,15 +541,23 @@ function ctm_installation_set_message($id, $message = '', $path = '') {
 /**
  * helper fonction
  * creer un element par defaut de la matrice des droits (tout a false)
+ *    'create' => create content
+ *    'view' => view content
+ *    'update' => modify content
+ *    'delete' => remove content
+ *    'publish' => publish
+ *    'admin' => administration permissions
+ *    'create_ct' => create content type
+ *    'update_ct' => modify content type
+ *    'delete_ct' => remove content type
  * @return type
  */
 function ctm_installation_get_default_perms() {
   return array(
-      'view' => FALSE,
-      'comment' => FALSE,
+      'create' => FALSE,
+      'read' => FALSE,
       'update' => FALSE,
       'delete' => FALSE,
-      'create' => FALSE,
       'publish' => FALSE,
       'admin' => FALSE,
   );
@@ -626,109 +565,71 @@ function ctm_installation_get_default_perms() {
 
 /**
  * helper fonction
- * creer un element par defaut de la matrice des droits (tout a false)
+ * creer un element par defaut de la matrice des droits (tout a vrai sauf admin)
+ *    'create' => create content
+ *    'view' => view content
+ *    'update' => modify content
+ *    'delete' => remove content
+ *    'publish' => publish
+ *    'admin' => administration permissions
+ *    'create_ct' => create content type
+ *    'update_ct' => modify content type
+ *    'delete_ct' => remove content type
  * @return type
  */
 function ctm_installation_get_true_perms() {
   return array(
-      'view' => TRUE,
-      'comment' => TRUE,
+      'create' => TRUE,
+      'read' => TRUE,
       'update' => TRUE,
       'delete' => TRUE,
-      'create' => TRUE,
       'publish' => TRUE,
       'admin' => FALSE,
   );
 }
 
 /**
- * Liste des roles et des droits sur l'indus
+ * Liste des roles et des droits par content type
  * matrice des droits par defauts par role. C'est de la que l'on defini tous
  * les droits.
- * le cas 'default' est le cas de la gestion des droits dans les vues quand
- * on ne sait pas quel ct on va obtenir
+ * Le niveau defini les diferente matrice (standard ou og)
+ * le cas 'default' dans le sous niveau est le cas de la gestion des droits 
+ * dans les vues quand on ne sait pas quel ct on va obtenir
+ *    'create' => create content
+ *    'view' => view content
+ *    'update' => modify content
+ *    'delete' => remove content
+ *    'publish' => publish
+ *    'admin' => administration permissions
+ *    'create_ct' => create content type
+ *    'update_ct' => modify content type
+ *    'delete_ct' => remove content type
  *
  */
-function ctm_installation_permission_matrice() {
+function ctm_installation_get_permission_matrice() {
   static $matrice; // Use the advanced drupal_static() pattern, since this is called very often.
   if (!isset($matrice)) {
     $matrice = &drupal_static(__FUNCTION__, array());
   }
-  $matrice['default'] = array(
+  $matrice = array('user' => array());
+  $matrice['user']['default'] = array(
       ADMINISTRATEUR => ctm_installation_get_true_perms(),
       ADMIN_SITE => ctm_installation_get_true_perms(),
-      CONTRIBUTEUR => ctm_installation_get_true_perms(),
       AUTHENTICATED => ctm_installation_get_default_perms(),
       ANONYMOUS => ctm_installation_get_default_perms(),
   );
-  $matrice['default'][ADMINISTRATEUR]['admin'] = TRUE;
-  $matrice['default'][ADMIN_SITE]['admin'] = TRUE;
-  $matrice['default'][RELECTEUR]['view'] = TRUE;
-  $matrice['default'][RELECTEUR]['comment'] = TRUE;
-  $matrice['default'][AUTHENTICATED]['view'] = TRUE;
+  $matrice['user']['default'][ADMINISTRATEUR]['admin'] = TRUE;
+  $matrice['user']['default'][ADMIN_SITE]['admin'] = TRUE;
+  $matrice['user']['default'][AUTHENTICATED]['read'] = TRUE;
   if (drupal_get_profile() == CTM_INTERNET) {
-    $matrice['default'][ANONYMOUS]['view'] = TRUE;
-  }
-  else {
-    $matrice['default'][LECTEUR] = ctm_installation_get_default_perms();
-    $matrice['default'][LECTEUR]['view'] = TRUE;
+    $matrice['user']['default'][ANONYMOUS]['read'] = TRUE;
   }
   $types = array_keys(node_type_get_names());
   foreach ($types as $type) {
-    $matrice[$type] = $matrice['default'];
+    $matrice['user'][$type] = $matrice['default'];
   }
   drupal_alter('installation_permission_matrice', $matrice);
   return $matrice;
-}
-
-/**
- * grant ou revoke les types de permissions donnees pour un content type, pour un role
- * @param string $ct_name
- * @param array $types
- */
-function ctm_installation_set_permissions($ct_name, $types, $roles, $grant = 'grant', $module = 'user', $tabRoles = '') {
-  $perm = array();
-  if ($module == 'user') {
-    $tabRoles = ctm_installation_user_roles();
-  }
-  if ($types & CTM_PUBLISH_PERM) {
-    $perm = array_merge($perm, array(
-        'publish any ' . $ct_name . ' content',
-        'unpublish any ' . $ct_name . ' content',
-    ));
-  }
-  if ($types & CTM_DELETE_PERM) {
-    $perm = array_merge($perm, array(
-        'delete any ' . $ct_name . ' content',
-    ));
-  }
-  if ($types & CTM_CREATE_PERM) {
-    $perm = array_merge($perm, array('create ' . $ct_name . ' content'));
-  }
-  if (($types & CTM_COMMENT_PERM) || ($types & CTM_EDIT_PERM)) {
-    if ($module === 'og') {
-      $perm = array_merge($perm, array(
-          'update any ' . $ct_name . ' content',
-          'view any unpublished ' . $ct_name . ' content',
-      ));
-    }
-    else {
-      $perm = array_merge($perm, array(
-          'edit any ' . $ct_name . ' content',
-          'view any unpublished ' . $ct_name . ' content',
-      ));
-    }
-  }
-  if ($module == 'user') {
-    $permissions = array_keys(module_invoke_all('permission'));
-    $perm = array_intersect($perm, $permissions);
-  }
-  $callback = $module . '_role_' . $grant . '_permissions';
-  if (is_array($roles)) {
-    foreach ($roles as $role) {
-      $callback($tabRoles[$role], $perm);
-    }
-  }
 }
 
 /**
@@ -939,4 +840,79 @@ function ctm_installation_drush_log($message) {
  */
 function ctm_installation_get_form_state_value($form_state,$field_name) {
   return reset($form_state['values'][$field_name]);
+}
+
+
+/**
+ * Cree un profil ckeditor et assigne leur format de texte
+ * @param $data : array('name'=>string, 'settings'=>array, 'input_formats'=>array)
+ */
+function ctm_installation_create_ckeditor_profil($data) {
+  $values = array(
+      "name" => $data['name'],
+      "settings" => serialize($data['settings']));
+  ctm_installation_insert_or_update('ckeditor_settings', array($values), array('name'));
+
+  if (!empty($data['input_formats'])) {
+    $values = array();
+    foreach (array_keys($data['input_formats']) as $format) {
+      $values[] = array("name" => $data['name'], "format" => $format);
+    }
+    ctm_installation_insert_or_update('ckeditor_input_format', $values, array('name'));
+  }
+}
+
+/**
+ * grant or revoke a group of permissions for a content type, for a role
+ * @param string $ct : content type
+ * @param array $group : a group name of permission define by hook_installation_permission
+ * @param array $role : role name
+ * @param string : "grant" or "revoke"
+ * @param string : "user" or "og"
+ */
+function ctm_installation_set_permissions($ct, $group, $role, $grant = 'grant', $module = 'user') {
+  
+  if ($module == 'user') {
+    $tabRoles = ctm_installation_user_roles();
+  } else {
+    // add og function
+  }
+  
+  $perm = array();
+  $perm_groups = module_invoke_all('installation_permissions');
+  $func_list = $perm_groups[$group];
+  foreach($func_list as $callback) {
+    $perm = array_merge($perm,$callback($ct));
+  }
+  
+  if ($module == 'user') {
+    $permissions = array_keys(module_invoke_all('permission'));
+    $perm = array_intersect($perm, $permissions);
+    if($grant == 'grant') {
+      $var = variable_get('content_type_extras_default_settings', array());
+      $new_perm = '';
+      switch($group) {
+        case 'create':
+          $new_perm = 'create_roles';
+          break;
+        case 'update':
+          $new_perm = 'edit_roles';
+          break;
+        case 'delete':
+          $new_perm = 'delete_roles';
+          break;
+        default:
+          continue;
+      }
+      if ($new_perm != '') {
+        $var['user_permissions'][$new_perm][$tabRoles[$roles]] = $tabRoles[$role];
+      }
+      variable_set('content_type_extras_default_settings', $var);
+    }
+  } else {
+    $permissions = array_keys(module_invoke_all($module.'_permission'));
+    $perm = array_intersect($perm, $permissions);
+  }
+  $callback = $module . '_role_' . $grant . '_permissions';
+  $callback($tabRoles[$role], $perm);
 }

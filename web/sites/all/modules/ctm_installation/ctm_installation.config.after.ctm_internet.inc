@@ -22,15 +22,3 @@ function ctm_installation_config_xmlsitemap_after_ctm_internet($profile, $roles,
   variable_set('xmlsitemap_base_url', $base_url_public);
   variable_set('xmlsitemap_prefetch_aliases', FALSE);
 }
-
-/**
- * gestion des droits
- * @param type $profile
- * @param type $roles
- * @param type $op
- */
-function ctm_installation_config_permission_after_ctm_internet($profile, $roles, $op = 'update') {
-  user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array('display EU Cookie Compliance popup'));
-  user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, array('display EU Cookie Compliance popup'));
-  user_role_grant_permissions($roles[ADMINISTRATEUR], array('administer EU Cookie Compliance popup'));
-}

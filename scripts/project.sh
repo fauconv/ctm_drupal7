@@ -43,7 +43,7 @@ function showHelp {
   echo "  commands about the entire farm:"
   echo "  -------------------------------"
   echo ""
-  echo "  ${SCRIPT_NAME} package           : create a package for deployment in production of a project "
+  echo "  ${SCRIPT_NAME} package <version> : create a package for deployment in production of a project "
   echo "  ${SCRIPT_NAME} unpack <file>     : "
   echo "  ${SCRIPT_NAME} list              : list all web-site (site-id) in this project"
   echo "  ${SCRIPT_NAME} update            : update and rebuild all web-site in production or dev "
@@ -52,15 +52,15 @@ function showHelp {
   echo "  commands about a site of the farm:"
   echo "  ----------------------------------"
   echo ""
-  echo "  ${SCRIPT_NAME} site deploy <site_id>      : create or install (if already exist) a web-site in the "
-  echo "                                              project for development (drupal install)"
-  echo "                                              => you must set <ID>${LOCAL_CONF} and <ID>${GLOBAL_CONF} before."
-  echo "  ${SCRIPT_NAME} site remove <site-id>      : remove an web-site (installed or not)"
-  echo "  ${SCRIPT_NAME} site update <site-id>      : update and rebuild a web-site in production or dev"
-  echo "  ${SCRIPT_NAME} site back <site-id> [file] : site configuration and data go back before the last snapshot."
-  echo "                                              if a file is specified, the script use that file as snapshot instead of the last snapshot"
-  echo "                                              The file must be in dump directory"
-  echo "  ${SCRIPT_NAME} site snapshot <site-id>    : make a snapshot (backup) of the site to go back to this point later"
+  echo "  ${SCRIPT_NAME} site deploy <site_id> -s <step> : create or install (if already exist) a web-site in the "
+  echo "                                                  project for development (drupal install)"
+  echo "                                                  => you must set <ID>${LOCAL_CONF} and <ID>${GLOBAL_CONF} before."
+  echo "  ${SCRIPT_NAME} site remove <site-id>           : remove an web-site (installed or not)"
+  echo "  ${SCRIPT_NAME} site update <site-id>           : update and rebuild a web-site in production or dev"
+  echo "  ${SCRIPT_NAME} site back <site-id> [file]      : site configuration and data go back before the last snapshot."
+  echo "                                                  if a file is specified, the script use that file as snapshot instead of the last snapshot"
+  echo "                                                  The file must be in dump directory"
+  echo "  ${SCRIPT_NAME} site snapshot <site-id>         : make a snapshot (backup) of the site to go back to this point later"
   echo ""
   echo " = More help :"
   echo " ============="
@@ -154,7 +154,7 @@ while true; do
       ABS_MEDIA_PATH=${ABS_MEDIAS_PATH}/$ID
       case $2 in
         deploy )
-          site_deploy
+          site_deploy $4 $5
           shift;
           ;;
         dump )

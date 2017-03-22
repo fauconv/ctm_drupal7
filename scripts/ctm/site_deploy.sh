@@ -196,10 +196,14 @@ function addcmd {
 function site_deploy {
   read_config
   setRight dev
+  if [ "$1" = "-s" ] && [ "$2" = "1" ] || [ "$1" = "" ]; then
   create_sites
   create_site
   create_htaccess
   create_drush_alias
+    addcmd
+  fi
+  if [ "$1" = "-s" ] && [ "$2" = "2" ] || [ "$1" = "" ]; then
   if [ "${LANG}" = "en" -o "${LANG}" = "EN" ]; then
     LOCAL=""
   else
@@ -213,12 +217,14 @@ function site_deploy {
     ${ABS_SCRIPTS_PATH}/drush @${ID} ctm_tools devel
     dump
   fi
+    echo ""
+    echo "DONT FORGET TO NOTE the administrator password display above this message"
+  fi
+  if [ "$1" = "-s" ] && [ "$2" = "3" ] || [ "$1" = "" ]; then
   cd $ABS_DCF_PATH
   finalize
-  addcmd
+  fi
   setRight $ENV
-  echo ""
-  echo "DONT FORGET TO NOTE the administrator password display above this message"
 }
 
 

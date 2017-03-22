@@ -5,8 +5,39 @@
  * Pour ajouter des fonctions configurations a l'installation
  * Les fonctions doivent etre de la forme : ctm_installation_config_*[_after | _before]
  */
-define('SITE_NAME','Website name');
+
+define('CONTRIBUTEUR', 'Contributor'); // nom du role contributeur
 
 function ctm_core_installation_config() {
   return array();
+}
+
+/**
+ * implement hook_installation_permission_matrice_alter
+ */
+function ctm_core_installation_permission_matrice_alter(&$matrice) {
+  foreach ($matrice as $key => $value) {
+    foreach ($value as $key2 => $value2) {
+      $matrice[$key][$key2][CONTRIBUTEUR] = ctm_installation_get_true_perms();
+    }
+  }
+}
+
+/*
+ * create/update a list of permission associated to a group name. 
+ * the permission list is given by a function callback which take content type 
+ * name as parameter
+ */
+function ctm_core_installation_permissions() {
+  return array(
+    'admin' => array('ctm_core_contrib_permission')
+  );
+}
+
+function ctm_core_contrib_permission($ct) {
+  return array(
+      'assign '.CONTRIBUTEUR.' role',
+      'edit users with role '.CONTRIBUTEUR,
+      'cancel users with role '.CONTRIBUTEUR,
+  );
 }

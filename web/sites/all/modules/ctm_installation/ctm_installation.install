@@ -120,7 +120,7 @@ function ctm_installation_set_dependencies_ctm(&$dependencies, $module) {
 }
 
 /**
- * mets en cache les donnes de update_get_update_list() pour pouvoir l'appeler souvent
+ * mets en cache les donnees de update_get_update_list() pour pouvoir l'appeler souvent
  */
 function ctm_installation_update_get_update_list() {
   static $list;
