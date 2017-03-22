@@ -360,16 +360,16 @@ function ctm_installation_config_core_themes($profile, $roles, $op = 'update') {
     return;
   }
   //Initialise le theme admin
-  variable_set('admin_theme', CTM_THEME_BACK);
+  variable_set('admin_theme', 'ctm_back');
   variable_set('node_admin_theme', '1');
 
   //Active le theme par default
   db_update('system')
       ->fields(array('status' => 1))
       ->condition('type', 'theme')
-      ->condition('name', CTM_THEME)
+      ->condition('name', 'ctm')
       ->execute();
-  variable_set('theme_default', CTM_THEME);
+  variable_set('theme_default', 'ctm');
 
   theme_disable(array('bartik'));
 }

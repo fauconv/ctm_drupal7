@@ -16,8 +16,6 @@ require $ctm_installation_dir . '/ctm_installation.permissions.api.inc'; // libr
 //theme et profil
 define('CTM_INTERNET', 'ctm_internet'); // nom du profil internet
 define('CTM_INTRANET', 'ctm_intranet'); // nom du profil intranet
-define('CTM_THEME', 'ctm'); // theme
-define('CTM_THEME_BACK', 'ctm_back'); // theme back
 //roles
 define('ADMINISTRATEUR', 'Developer'); // nom du role administrateur
 define('ADMIN_SITE', 'Administrator'); // nom du role admin metier
@@ -976,7 +974,7 @@ function ctm_installation_preprocess_html(&$variables) {
 }
 function ctm_installation_installation_permissions() {
   return array(
-    'create' => array('ctm_installation_create_perm'), 
+    'create' => array('ctm_installation_create_perm'),
     'read' => array('ctm_installation_read_perm'),
     'update' => array('ctm_installation_update_perm'),
     'delete' => array('ctm_installation_delete_perm'),
