@@ -455,7 +455,7 @@ function ctm_installation_activate_views($view_list) {
  * par default des element autour du content type :
  * -variables
  */
-function ctm_installation_set_default_block_datas($type, $roles, $profile, $fields) {
+function ctm_installation_set_default_block_datas($type) {
   //Configuration publish content
   variable_set('publishcontent_' . $type, 1);
 
@@ -471,7 +471,6 @@ function ctm_installation_set_default_block_datas($type, $roles, $profile, $fiel
           'granularity' => 0,
   )));
   variable_set('display_cache_comment_publication_clears_host_entity_cache_node_' . $type, array('default' => 0));
-  ctm_installation_set_default_display_cache_field($type, $fields);
 }
 
 /**
@@ -499,9 +498,9 @@ function ctm_installation_set_default_display_cache_field($type, $fields) {
  * -scheduler
  * -linkit
  */
-function ctm_installation_set_default_content_type_datas($type, $roles, $profile, $fields) {
+function ctm_installation_set_default_content_type_datas($type) {
 
-  ctm_installation_set_default_block_datas($type, $roles, $profile, $fields);
+  ctm_installation_set_default_block_datas($type);
 
   //scheduler
   variable_set('scheduler_publish_enable_' . $type, 1);
@@ -766,4 +765,16 @@ function ctm_installation_create_ckeditor_profil($data) {
     }
     ctm_installation_insert_or_update('ckeditor_input_format', $values, array('name'));
   }
+}
+
+/**
+ * 
+ * @param type $content_type_bundle
+ */
+function ctm_installation_insert_or_update_content_type($content_type_bundle) {
+  $content_type_bundle = node_type_set_defaults($content_type_bundle);
+  node_type_save($content_type_bundle);
+  $bundle_settings = field_bundle_settings('node', $content_type_bundle->type);
+  $bundle_settings['view_modes']['teaser']['custom_settings'] = FALSE;
+  field_bundle_settings('node', $content_type_bundle->type, $bundle_settings);
 }
