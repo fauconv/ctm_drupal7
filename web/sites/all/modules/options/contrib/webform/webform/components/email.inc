@@ -112,7 +112,7 @@ function _webform_edit_email($component) {
     '#type' => 'checkbox',
     '#title' => t('Disabled'),
     '#return_value' => 1,
-    '#description' => t('Make this field non-editable. Useful for setting an unchangeable default value.'),
+    '#description' => t('Make this field non-editable. Useful for displaying default value. Changeable via JavaScript or developer tools.'),
     '#weight' => 11,
     '#default_value' => $component['extra']['disabled'],
     '#parents' => array('extra', 'disabled'),
@@ -176,7 +176,7 @@ function _webform_render_email($component, $value = NULL, $filter = TRUE, $submi
     // pattern validation. This means that long format email addresses must be
     // rendered as text.
     $element['#attributes']['type'] = 'text';
-
+    
     // html5 patterns have implied delimters and start and end patterns.
     // The are also case sensitive, not global, and not multi-line.
     // See https://developer.mozilla.org/en-US/docs/Web/Guide/HTML/HTML5/Constraint_validation

@@ -1,0 +1,4 @@
+@ECHO OFF
+setlocal DISABLEDELAYEDEXPANSION
+SET BIN_TARGET=%~dp0/project.php
+php "%BIN_TARGET%" %*

@@ -77,7 +77,8 @@ function pathauto_i18n_set_bundle_default($entity_type, $bundle, $value) {
  * @see pathauto_field_attach_form()
  */
 function pathauto_i18n_configuration_form(&$form, $entity, $entity_type, $bundle) {
-  if ($entity) {
+  $access = user_access('create url aliases') || user_access('administer url aliases');
+  if ($entity && $access) {
     $default = pathauto_i18n_get_bundle_default($entity_type, $bundle);
     $form['path']['pathauto_i18n_status'] = array(
       '#type' => 'checkbox',

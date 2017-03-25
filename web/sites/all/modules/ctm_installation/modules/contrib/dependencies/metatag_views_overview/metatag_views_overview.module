@@ -194,13 +194,15 @@ function metatag_views_overview_form_metatag_config_edit_form_alter(&$form, &$fo
  * Metatag views config edit submit handler.
  */
 function metatag_views_overview_config_edit_form_submit($form, &$form_state) {
+  // Get default language.
+  $default = $form['metatags']['#language'];
   // Cleanup the metatags.
-  metatag_filter_values_from_defaults($form_state['values']['metatags'], $form['metatags']['#metatag_defaults']);
+  metatag_filter_values_from_defaults($form_state['values']['metatags'][$default], $form['metatags'][$default]['#metatag_defaults']);
 
   // Save the metatags to the view.
   list($type, $view_name, $display) = preg_split('/[:-]/', $form['instance']['#value']);
   $view = views_get_view($view_name);
-  $view->display[$display]->display_options['metatags'] = $form_state['values']['metatags'];
+  $view->display[$display]->display_options['metatags'] = $form_state['values']['metatags'][$default];
   $view->save();
 
   // Flush caches.

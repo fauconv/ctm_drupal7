@@ -603,17 +603,7 @@ function xmlsitemap_link_save(array $link, array $context = array()) {
     $link['changecount'] = 0;
   }
 
-  $link_keys = array('type', 'id');
-
-  // If entity translation exists and the link has a language we need to add the
-  // language to the query to fetch the unique / language specific link.
-  if (module_exists('entity_translation') && entity_get_info($link['type']) && entity_translation_enabled($link['type']) && !empty($link['language'])) {
-    $existing = db_query_range("SELECT loc, access, status, lastmod, priority, changefreq, changecount, language FROM {xmlsitemap} WHERE type = :type AND id = :id AND language = :language", 0, 1, array(':type' => $link['type'], ':id' => $link['id'], ':language' => $link['language']))->fetchAssoc();
-    $link_keys[] = 'language';
-  }
-  else {
-    $existing = db_query_range("SELECT loc, access, status, lastmod, priority, changefreq, changecount, language FROM {xmlsitemap} WHERE type = :type AND id = :id", 0, 1, array(':type' => $link['type'], ':id' => $link['id']))->fetchAssoc();
-  }
+  $existing = db_query_range("SELECT loc, access, status, lastmod, priority, changefreq, changecount, language FROM {xmlsitemap} WHERE type = :type AND id = :id", 0, 1, array(':type' => $link['type'], ':id' => $link['id']))->fetchAssoc();
 
   // Check if this is a changed link and set the regenerate flag if necessary.
   if (!variable_get('xmlsitemap_regenerate_needed', FALSE)) {
@@ -622,7 +612,7 @@ function xmlsitemap_link_save(array $link, array $context = array()) {
 
   // Save the link and allow other modules to respond to the link being saved.
   if ($existing) {
-    drupal_write_record('xmlsitemap', $link, $link_keys);
+    drupal_write_record('xmlsitemap', $link, array('type', 'id'));
     module_invoke_all('xmlsitemap_link_update', $link, $context);
   }
   else {
@@ -673,17 +663,11 @@ function xmlsitemap_link_update_multiple($updates = array(), $conditions = array
  *   A string with the entity type.
  * @param $entity_id
  *   An integer with the entity ID.
- * @param $langcode
- *  An optionnal language code for the link that should be deleted.
- *  If omitted, links for that entity will be removed in all languages.
  * @return
  *   The number of links that were deleted.
  */
-function xmlsitemap_link_delete($entity_type, $entity_id, $langcode = NULL) {
+function xmlsitemap_link_delete($entity_type, $entity_id) {
   $conditions = array('type' => $entity_type, 'id' => $entity_id);
-  if ($langcode) {
-    $conditions['language'] = $langcode;
-  }
   return xmlsitemap_link_delete_multiple($conditions);
 }
 
@@ -1167,14 +1151,6 @@ function xmlsitemap_field_attach_delete_bundle($entity_type, $bundle, $instances
 }
 
 /**
- * Implements hook_entity_translation_delete().
- */
-function xmlsitemap_entity_translation_delete($entity_type, $entity, $langcode) {
-  list($id, $vid, $bundle) = entity_extract_ids($entity_type, $entity);
-  xmlsitemap_link_delete($entity_type, $id, $langcode);
-}
-
-/**
  * Determine the frequency of updates to a link.
  *
  * @param $interval
@@ -1616,43 +1592,4 @@ function xmlsitemap_link_enqueue($type, $ids) {
   /** @var DrupalReliableQueueInterface $queue */
   $queue = DrupalQueue::get('xmlsitemap_link_process');
   $queue->createItem($data);
-}
-
-/**
- * Determines the languages to process for an entity.
- *
- * If entity_translation is available the languages are determined by using the
- * translation handler, otherwise it falls back to the default language.
- * Only the language of published translations are returned.
- *
- * @param string $entity_type
- *   The type of entity.
- * @param object $entity
- *   The entity.
- * @param string $default_language
- *   Set the default language to use if no translations / entity languages where
- *   found.
- *
- * @return array
- *   Array with the language codes of available languages.
- *   Returns only languages of published translations. If entity isn't handled
- *   by entity translation the default language is used.
- */
-function xmlsitemap_get_entity_languages($entity_type, $entity, $default_language = LANGUAGE_NONE) {
-  if (module_exists('entity_translation')) {
-    if (entity_translation_enabled($entity_type, $entity)) {
-      $handler = entity_translation_get_handler($entity_type, $entity);
-      if (!empty($handler)) {
-        $languages = array();
-        $translations = $handler->getTranslations();
-        foreach ($translations->data as $translation_lang => $translation_data) {
-          if (!empty($translation_data['status'])) {
-            $languages[$translation_lang] = $translation_lang;
-          }
-        }
-        return $languages;
-      }
-    }
-  }
-  return array($default_language);
 }

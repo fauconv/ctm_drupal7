@@ -173,11 +173,7 @@ function views_bulk_operations_action_load_list($view, $args) {
   $entity_type = $vbo->get_entity_type();
   $entities = entity_metadata_wrapper("list<$entity_type>", array());
   foreach ($vbo->view->result as $row_index => $result) {
-    // Grab the entire entity if it's already loaded or fall back to the
-    // entity identifier.
-    $entity = $vbo->get_value($result);
-    $data = $entity ? $entity : $result->{$vbo->real_field};
-    $entities[] = entity_metadata_wrapper($entity_type, $data);
+    $entities[] = entity_metadata_wrapper($entity_type, $vbo->get_value($result));
   }
 
   return array('entity_list' => $entities);

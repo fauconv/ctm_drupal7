@@ -642,9 +642,10 @@ function webform_submission_render($node, $submission, $email, $format, $exclude
     foreach ($excluded_components as $cid) {
       unset($components[$cid]);
     }
-    if ($email && $email['exclude_empty']) {
+    if (!empty($email['exclude_empty'])) {
       foreach ($submission->data as $cid => $data) {
-        if (!isset($data[0]) || $data[0] == '') {
+        // Caution. Grids store their data in an array index by question key.
+        if (implode($data) == '') {
           unset($components[$cid]);
         }
       }

@@ -523,7 +523,7 @@ function views_bulk_operations_form($form, &$form_state, $vbo) {
     $enable_select_all_pages = FALSE;
     // If the view is paginated, and "select all items on all pages" is
     // enabled, tell that to the theme function.
-    if (isset($vbo->view->total_rows) && count($vbo->view->result) != $vbo->view->total_rows && $vbo->get_vbo_option('enable_select_all_pages')) {
+    if (count($vbo->view->result) != $vbo->view->total_rows && $vbo->get_vbo_option('enable_select_all_pages')) {
       $enable_select_all_pages = TRUE;
     }
     $form['select_all_markup'] = array(
@@ -1186,7 +1186,7 @@ function views_bulk_operations_direct_process($operation, $rows, $options) {
     $skip_permission_check = $operation->getAdminOption('skip_permission_check');
     // Filter out entities that can't be accessed.
     foreach ($entities as $id => $entity) {
-      if (!$skip_permission_check && !_views_bulk_operations_entity_access($operation, $entity_type, $entity, $user)) {
+      if (!$skip_permission_check && !_views_bulk_operations_entity_access($operation, $entity_type, $entity, $account)) {
         $context['results']['log'][] = t('Skipped %operation on @type %title due to insufficient permissions.', array(
           '%operation' => $operation->label(),
           '@type' => $entity_type,

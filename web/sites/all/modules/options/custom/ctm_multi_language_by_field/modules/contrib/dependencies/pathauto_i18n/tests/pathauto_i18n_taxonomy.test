@@ -36,7 +36,7 @@ class Pathautoi18nTaxonomyTest extends Pathautoi18nTest {
       'pathauto_taxonomy_term_tags_pattern' => 'neutral/[term:name]',
     );
 
-    foreach ($this->availableLanguges as $language) {
+    foreach ($this->availableLanguages as $language) {
       $edit['pathauto_taxonomy_term_tags_' . $language . '_pattern'] = $language . '/[term:name]';
     }
     $this->drupalPost('admin/config/search/path/patterns', $edit, t('Save configuration'));
@@ -49,7 +49,7 @@ class Pathautoi18nTaxonomyTest extends Pathautoi18nTest {
     $this->createTaxonomyTerm(TRUE, TRUE);
     // Check aliases.
     $this->drupalGet('admin/config/search/path');
-    foreach ($this->availableLanguges as $language) {
+    foreach ($this->availableLanguages as $language) {
       $alias = $language . '/' . $this->title;
       $this->assertText($alias, 0, "Exist alias '$alias' for language '$language'.");
     }
@@ -64,7 +64,7 @@ class Pathautoi18nTaxonomyTest extends Pathautoi18nTest {
     $this->createTaxonomyTerm(TRUE, TRUE, $custom_alias);
     // Check aliases and custom alias.
     $this->drupalGet('admin/config/search/path');
-    foreach ($this->availableLanguges as $language) {
+    foreach ($this->availableLanguages as $language) {
       $alias = $language . '/' . $this->title;
       $this->assertText($alias, 0, "Exist alias '$alias' for language '$language'.");
     }
@@ -79,14 +79,14 @@ class Pathautoi18nTaxonomyTest extends Pathautoi18nTest {
   public function testCleanString() {
     // Set appropriate title which will allow us remove parts of path.
     $initial_title = $this->title;
-    $this->title .= ' ' . implode(' ', $this->availableLanguges);
+    $this->title .= ' ' . implode(' ', $this->availableLanguages);
 
     $this->setCleanStringSettings();
     $this->createTaxonomyTerm(TRUE, TRUE);
 
     // Check aliases.
     $this->drupalGet('admin/config/search/path');
-    foreach ($this->availableLanguges as $language) {
+    foreach ($this->availableLanguages as $language) {
       $suffix = $this->getCleanStringSuffix($language);
       $alias = $language . '/' . $initial_title . '/' . $suffix;
       $this->assertNoText($alias, 0, "Exist alias '$alias' for language '$language' with excluded string '$language'.");

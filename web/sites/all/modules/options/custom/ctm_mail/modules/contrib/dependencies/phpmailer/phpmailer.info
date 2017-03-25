@@ -10,9 +10,9 @@ files[] = tests/phpmailer.test
 ;files[] = class.phpmailer.php
 ;files[] = class.smtp.php
 
-; Information added by Drupal.org packaging script on 2014-05-16
-version = "7.x-3.x-dev"
+; Information added by Drupal.org packaging script on 2016-09-11
+version = "7.x-3.0-beta1"
 core = "7.x"
 project = "phpmailer"
-datestamp = "1400281428"
+datestamp = "1473606540"
 

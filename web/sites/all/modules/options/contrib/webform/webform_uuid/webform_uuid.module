@@ -75,6 +75,15 @@ function webform_entity_uuid_presave(&$entity, $entity_type) {
 }
 
 /**
+ * Implements hook_webform_submission_presave().
+ */
+function webform_uuid_webform_submission_presave(&$entity, &$submission) {
+  if (uuid_is_valid($entity->webform['nid'])) {
+    $entity->webform['nid'] = current(entity_get_id_by_uuid('node', array($entity->webform['nid'])));
+  }
+}
+
+/**
  * Implements hook_entity_uuid_save().
  */
 function webform_entity_uuid_save($entity, $entity_type) {

@@ -23,7 +23,7 @@ class Pathautoi18nTest extends DrupalWebTestCase {
   /**
    * Available languages.
    */
-  protected $availableLanguges;
+  protected $availableLanguages;
 
   /**
    * Title.
@@ -51,14 +51,14 @@ class Pathautoi18nTest extends DrupalWebTestCase {
 
     // Set content language and all available languages.
     $this->contentLanguage = 'en';
-    $this->availableLanguges = array(
+    $this->availableLanguages = array(
       'en',
       'fr',
       'de',
     );
 
     $this->title = 'pathautoi18n';
-    foreach ($this->availableLanguges as $language) {
+    foreach ($this->availableLanguages as $language) {
       if ($language != $this->contentLanguage) {
         $this->drupalPost('admin/config/regional/language/add', array('langcode' => $language), t('Add language'));
       }
@@ -74,7 +74,7 @@ class Pathautoi18nTest extends DrupalWebTestCase {
    */
   public function setCleanStringSettings() {
     $data = array();
-    foreach ($this->availableLanguges as $language) {
+    foreach ($this->availableLanguages as $language) {
       $data['pathauto_ignore_words_' . $language . '_language'] = $language;
     }
 
@@ -86,7 +86,7 @@ class Pathautoi18nTest extends DrupalWebTestCase {
    */
   public function getCleanStringSuffix($skip_language) {
     $suffix = array();
-    foreach ($this->availableLanguges as $language) {
+    foreach ($this->availableLanguages as $language) {
       if ($language != $skip_language) {
         $suffix[] = $language;
       }

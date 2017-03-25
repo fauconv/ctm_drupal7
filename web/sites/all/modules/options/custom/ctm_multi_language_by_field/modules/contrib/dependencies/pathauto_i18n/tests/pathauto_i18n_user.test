@@ -34,7 +34,7 @@ class Pathautoi18nUserTest extends Pathautoi18nTest {
       'pathauto_user_pattern' => 'neutral/users/[user:name]',
     );
 
-    foreach ($this->availableLanguges as $language) {
+    foreach ($this->availableLanguages as $language) {
       $edit['pathauto_user_user_' . $language . '_pattern'] = $language . '/users/[user:name]';
     }
     $this->drupalPost('admin/config/search/path/patterns', $edit, t('Save configuration'));
@@ -48,7 +48,7 @@ class Pathautoi18nUserTest extends Pathautoi18nTest {
     $this->createUser();
     // Check aliases.
     $this->drupalGet('admin/config/search/path/list/users');
-    foreach ($this->availableLanguges as $language) {
+    foreach ($this->availableLanguages as $language) {
       $alias = $language . '/users/' . $this->title;
       $this->assertText($alias, 0, "Exist alias '$alias' for language '$language'.");
     }
@@ -60,14 +60,14 @@ class Pathautoi18nUserTest extends Pathautoi18nTest {
   public function testCleanString() {
     // Set appropriate title which will allow us remove parts of path.
     $initial_title = $this->title;
-    $this->title .= ' ' . implode(' ', $this->availableLanguges);
+    $this->title .= ' ' . implode(' ', $this->availableLanguages);
 
     $this->setCleanStringSettings();
     $this->createUser();
 
     // Check aliases.
     $this->drupalGet('admin/config/search/path');
-    foreach ($this->availableLanguges as $language) {
+    foreach ($this->availableLanguages as $language) {
       $suffix = $this->getCleanStringSuffix($language);
       $alias = $language . '/' . $initial_title . '/' . $suffix;
       $this->assertNoText($alias, 0, "Exist alias '$alias' for language '$language' with excluded string '$language'.");
