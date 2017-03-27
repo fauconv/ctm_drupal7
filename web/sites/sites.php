@@ -1,3 +1,3 @@
 <?php
-$dir = __DIR__.'/../../config/sites.php';
+$dir = dirname(__FILE__).'/../../config/sites.php';
 require($dir);

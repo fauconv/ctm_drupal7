@@ -18,5 +18,5 @@ function ctm_mock_install() {
           ->execute();
 
   // set mode
-  variable_set('ctm_mock_activation', CTM_MOCK_NO);
+  variable_set('ctm_mock_activation', CTM_MOCK_MOCK);
 }

@@ -3476,6 +3476,7 @@ function template_preprocess_webform_form(&$vars) {
   elseif (isset($vars['form']['submission']['#value'])) {
     $vars['nid'] = $vars['form']['submission']['#value']->nid;
   }
+   $vars['theme_hook_suggestions'][] = 'webform_form__' . $vars['nid'];
 
   if (!empty($vars['form']['#node']->webform['conditionals']) && empty($vars['form']['preview'])) {
     module_load_include('inc', 'webform', 'includes/webform.conditionals');

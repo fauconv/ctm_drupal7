@@ -2,7 +2,7 @@
 
 /**
  * helper fonction
- * creer un element par defaut de la matrice des droits (tout a false)
+ * creer un element par defaut de la matrice des droits
  *    'create' => create content
  *    'view' => view content
  *    'update' => modify content
@@ -11,14 +11,15 @@
  *    'admin' => administration permissions
  * @return type
  */
-function ctm_installation_get_default_perms() {
+function ctm_installation_get_default_matrix($create = FALSE, $read = FALSE, 
+    $update = FALSE, $delete = FALSE, $publish = FALSE, $admin = FALSE) {
   return array(
-      'create' => FALSE,
-      'read' => FALSE,
-      'update' => FALSE,
-      'delete' => FALSE,
-      'publish' => FALSE,
-      'admin' => FALSE,
+      'create' => $create,
+      'read' => $read,
+      'update' => $update,
+      'delete' => $delete,
+      'publish' => $publish,
+      'admin' => $admin,
   );
 }
 
@@ -33,15 +34,8 @@ function ctm_installation_get_default_perms() {
  *    'admin' => administration permissions
  * @return type
  */
-function ctm_installation_get_true_perms() {
-  return array(
-      'create' => TRUE,
-      'read' => TRUE,
-      'update' => TRUE,
-      'delete' => TRUE,
-      'publish' => TRUE,
-      'admin' => FALSE,
-  );
+function ctm_installation_get_true_matrix() {
+  return ctm_installation_get_default_matrix(TRUE, TRUE, TRUE, TRUE, TRUE);
 }
 
 /**
@@ -55,15 +49,8 @@ function ctm_installation_get_true_perms() {
  *    'admin' => administration permissions
  * @return type
  */
-function ctm_installation_get_create_perms() {
-  return array(
-      'create' => TRUE,
-      'read' => TRUE,
-      'update' => TRUE,
-      'delete' => FALSE,
-      'publish' => FALSE,
-      'admin' => FALSE,
-  );
+function ctm_installation_get_create_matrix() {
+  return ctm_installation_get_default_matrix(TRUE, TRUE, TRUE, FALSE, TRUE);
 }
 
 /**
@@ -77,21 +64,31 @@ function ctm_installation_get_create_perms() {
  *    'admin' => administration permissions
  * @return type
  */
-function ctm_installation_get_read_perms() {
-  return array(
-      'create' => FALSE,
-      'read' => TRUE,
-      'update' => FALSE,
-      'delete' => FALSE,
-      'publish' => FALSE,
-      'admin' => FALSE,
-  );
+function ctm_installation_get_update_matrix() {
+  return ctm_installation_get_default_matrix(FALSE, TRUE, TRUE, FALSE, TRUE);
+}
+/**
+ * helper fonction
+ * creer un element par defaut de la matrice des droits (tout a vrai sauf admin)
+ *    'create' => create content
+ *    'view' => view content
+ *    'update' => modify content
+ *    'delete' => remove content
+ *    'publish' => publish
+ *    'admin' => administration permissions
+ * @return type
+ */
+function ctm_installation_get_read_matrix() {
+  return ctm_installation_get_default_matrix(FALSE, TRUE);
 }
 
 function ctm_installation_read_perm($role, $ct = NULL) {
+  $list = array();
+  if($ct == 'default') {
   $list = array(
     'access content' => 'access content'
   );
+  }
   return $list;
 }
 
@@ -112,18 +109,9 @@ function ctm_installation_create_perm($role, $ct = 'default') {
 }
 
 function ctm_installation_update_perm($ct) {
-  $list = array_merge(
-      ctm_installation_read_perm($ct), 
-      array(
+  if($ct == 'default') {
+    $list = array(
         'display EU Cookie Compliance popup' =>'display EU Cookie Compliance popup',
-        'update any ' . $ct . ' content' => 'update any ' . $ct . ' content',  // og
-        'edit any ' . $ct . ' content' => 'edit any ' . $ct . ' content',
-        'edit own ' . $ct . ' content' => 'edit own ' . $ct . ' content',
-        'view any unpublished ' . $ct . ' content' => 'view any unpublished ' . $ct . ' content',
-        'enter ' . $ct . ' revision log entry' => 'enter ' . $ct . ' revision log entry',
-        'override ' . $ct . ' revision option' => 'override ' . $ct . ' revision option',
-        'override ' . $ct . ' promote to front page option' => 'override ' . $ct . ' promote to front page option',
-        'override ' . $ct . ' sticky option' => 'override ' . $ct . ' sticky option',
         'view revisions' =>'view revisions',
         'access administration pages' =>'access administration pages',
         'view the administration theme' =>'view the administration theme',
@@ -141,8 +129,19 @@ function ctm_installation_update_perm($ct) {
         'view own unpublished content' =>'view own unpublished content',
         'show format selection for node' =>'show format selection for node',
         'show format selection for taxonomy_term' =>'show format selection for taxonomy_term',
-      )
   );
+  } else {
+    $list = array(
+        'update any ' . $ct . ' content' => 'update any ' . $ct . ' content',  // og
+        'edit any ' . $ct . ' content' => 'edit any ' . $ct . ' content',
+        'edit own ' . $ct . ' content' => 'edit own ' . $ct . ' content',
+        'view any unpublished ' . $ct . ' content' => 'view any unpublished ' . $ct . ' content',
+        'enter ' . $ct . ' revision log entry' => 'enter ' . $ct . ' revision log entry',
+        'override ' . $ct . ' revision option' => 'override ' . $ct . ' revision option',
+        'override ' . $ct . ' promote to front page option' => 'override ' . $ct . ' promote to front page option',
+        'override ' . $ct . ' sticky option' => 'override ' . $ct . ' sticky option',
+    );
+  }
   return $list;
 }
 
@@ -199,13 +198,17 @@ function ctm_installation_publish_perm($role, $ct = 'default') {
   return $list;
 }
 
-
+/**
+ * return array contening permissions to assign a role
+ * @param string $role
+ * @return array
+ */
 function ctm_installation_assign_role($role) {
   $roles = ctm_installation_user_roles();
   return array(
-    'assign '.$role.' role',
-    'edit users with role '.$roles[$role],
-    'cancel users with role '.$roles[$role],
+    'assign '.$role.' role' => 'assign '.$role.' role',
+    'edit users with role '.$roles[$role] => 'edit users with role '.$roles[$role],
+    'cancel users with role '.$roles[$role] => 'cancel users with role '.$roles[$role],
   );
 }
 
@@ -267,10 +270,10 @@ function ctm_installation_get_permission_matrix() {
   }
   $matrice = array('user' => array());
   $matrice['user']['default'] = array(
-      ADMINISTRATEUR => ctm_installation_get_true_perms(),
-      ADMIN_SITE => ctm_installation_get_true_perms(),
-      AUTHENTICATED => ctm_installation_get_default_perms(),
-      ANONYMOUS => ctm_installation_get_default_perms(),
+      ADMINISTRATEUR => ctm_installation_get_true_matrix(),
+      ADMIN_SITE => ctm_installation_get_true_matrix(),
+      AUTHENTICATED => ctm_installation_get_default_matrix(),
+      ANONYMOUS => ctm_installation_get_default_matrix(),
   );
   $matrice['user']['default'][ADMINISTRATEUR]['admin'] = TRUE;
   $matrice['user']['default'][ADMIN_SITE]['admin'] = TRUE;
@@ -317,19 +320,18 @@ function ctm_installation_set_permissions($ct, $group, $role, $grant = 'grant', 
       $new_perm = '';
       switch($group) {
         case 'create':
-          $new_perm = 'create_roles';
+          $var['user_permissions']['create_roles'][$tabRoles[$role]] = $tabRoles[$role];
           break;
         case 'update':
-          $new_perm = 'edit_roles';
+          $var['user_permissions']['edit_roles'][$tabRoles[$role]] = $tabRoles[$role];
+          $var['user_permissions']['edit_own_roles'][$tabRoles[$role]] = $tabRoles[$role];
           break;
         case 'delete':
-          $new_perm = 'delete_roles';
+          $var['user_permissions']['delete_roles'][$tabRoles[$role]] = $tabRoles[$role];
+          $var['user_permissions']['delete_own_roles '][$tabRoles[$role]] = $tabRoles[$role];
           break;
         default:
           continue;
-      }
-      if ($new_perm != '') {
-        $var['user_permissions'][$new_perm][$tabRoles[$role]] = $tabRoles[$role];
       }
       variable_set('content_type_extras_default_settings', $var);
     }
@@ -337,6 +339,8 @@ function ctm_installation_set_permissions($ct, $group, $role, $grant = 'grant', 
     $permissions = array_keys(module_invoke_all($module.'_permission'));
     $perm = array_intersect($perm, $permissions);
   }
+  if(!empty($perm)) {
   $callback = $module . '_role_' . $grant . '_permissions';
   $callback($tabRoles[$role], $perm);
+  }
 }

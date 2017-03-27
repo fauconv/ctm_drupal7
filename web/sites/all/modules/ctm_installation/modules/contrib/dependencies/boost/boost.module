@@ -400,13 +400,8 @@ function boost_flush_caches() {
  * Implements hook_expire_cache (from the 'expire' module)
  */
 function boost_expire_cache($urls, $wildcards, $object_type, $object) {
-  global $base_root;
 
   foreach ($urls as $key => $url) {
-    // Check if the URL to be flushed matches our base URL
-    // base_root: http://www.example.org
-    // url: http://www.example.org/node/123
-    if (strpos($url, $base_root) === 0) {
       // Decode the url since it may have a query string that has been encoded
       $boost = boost_transform_url(urldecode($url));
 
@@ -442,7 +437,6 @@ function boost_expire_cache($urls, $wildcards, $object_type, $object) {
       }
     }
   }
-}
 
 /**
  * Implements hook_page_delivery_callback_alter().
@@ -480,7 +474,7 @@ function boost_transform_url($url = NULL, $b_path = NULL) {
       $items[$hash] = array('cache_this' => FALSE);
       return $items[$hash];
     }
-    $parts['base_dir'] = boost_get_normal_cache_dir() . '/' . $parts['host'] . $b_path;
+    $parts['base_dir'] = boost_get_normal_cache_dir() . '/' . boost_get_htaccess_host() . $b_path;
     $parts['filename'] = $parts['base_dir'] . $parts['full_path'] . variable_get('boost_char', BOOST_CHAR) . $parts['query'];
     $parts['directory'] = dirname($parts['filename']);
 
@@ -511,6 +505,19 @@ function boost_transform_url($url = NULL, $b_path = NULL) {
   }
 
   return $items[$hash];
+}
+
+function boost_get_htaccess_host() {
+  $boost_host = variable_get('boost_server_name_http_host', '%{HTTP_HOST}');
+  switch($boost_host) {
+    case '%{HTTP_HOST}' :
+      $boost_host = $_SERVER["HTTP_HOST"];
+    break;
+    case '%{SERVER_NAME}' :
+      $boost_host = $_SERVER["SERVER_NAME"];
+    break;
+  }
+  return $boost_host;
 }
 
 /**
@@ -1506,11 +1513,11 @@ function boost_form_submit_handler() {
  * Overwrite old htaccess rules with new ones.
  */
 function boost_htaccess_cache_dir_put() {
-  global $_boost, $base_path, $base_root;
+  global $_boost, $base_path;
   if (empty($_boost['base_dir'])) {
     $url = $base_root . request_uri();
     $parts = parse_url($url);
-    $_boost['base_dir'] = boost_get_normal_cache_dir() . '/' . $parts['host'] . $base_path;
+    $_boost['base_dir'] = boost_get_normal_cache_dir() . '/' . boost_get_htaccess_host() . $base_path;
   }
   boost_write_file($_boost['base_dir'] . '.htaccess', boost_htaccess_cache_dir_generate());
 }

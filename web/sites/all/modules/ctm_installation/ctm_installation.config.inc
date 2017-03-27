@@ -309,6 +309,7 @@ function ctm_installation_config_imce($profile, $roles, $op = 'update') {
  * Ajout des configuration du profil linkit
  */
 function ctm_installation_config_linkit($profile, $roles, $op = 'update') {
+  ctools_include('export');
   $linkit_profile = _ctm_installation_get_linkit_profil();
   $old = ctools_export_crud_load('linkit_profiles', $linkit_profile->name);
   if (!empty($old)) {

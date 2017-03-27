@@ -61,11 +61,6 @@ function ctm_mock_init() {
  * et recreer le meme environnement que OPENAM
  */
 function ctm_mock_readMock() {
-  global $base_root;
-  $public_base_root = variable_get('base_root_public', ''); // si base root n est pas defini on ne peut pas savoir si on est sur la partie public ou pas donc on est tout le temps logue
-  if($base_root == $public_base_root) {
-    return FALSE; // on est pas sur la partie admin donc on est pas identifie
-  }
   if(!isset($_SESSION['ctm_mock_info'])) {
     $file = dirname(DRUPAL_ROOT) . '/config/mock-' . basename(conf_path()) . '.xml';
     if(!file_exists($file)) {

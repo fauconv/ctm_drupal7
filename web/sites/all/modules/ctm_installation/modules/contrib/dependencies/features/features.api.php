@@ -56,8 +56,8 @@ function hook_features_api() {
       'default_file' => FEATURES_DEFAULTS_INCLUDED,
       'feature_source' => TRUE,
       'file' => drupal_get_path('module', 'mycomponent') . '/mycomponent.features.inc',
-    ),
-  );
+      'weight' => 0,
+  ));
 }
 
 /**

@@ -56,6 +56,7 @@ dependencies[] = date_popup
 dependencies[] = entityreference
 dependencies[] = field_from_theme
 dependencies[] = weight
+dependencies[] = tablefield
 
 ; Activation des modules lies a la gestion des urls et du breadcrumb
 dependencies[] = token

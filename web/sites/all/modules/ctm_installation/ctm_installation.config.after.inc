@@ -9,9 +9,9 @@
  */
 
 /**
- * gestion des droits de base et role developer
+ * create admin site user
  */
-function ctm_installation_config_permissions_after($profile, $roles, $op = 'update') {
+function ctm_installation_config_admin_site_user_after($profile, $roles, $op = 'update') {
   
   //create ADMIN_SITE
   if ($op != 'update') {

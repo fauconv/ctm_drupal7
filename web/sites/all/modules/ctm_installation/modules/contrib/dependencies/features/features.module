@@ -503,6 +503,7 @@ function features_load_feature($name, $reset = FALSE) {
         $features[$name]->name = $name;
         $features[$name]->filename = drupal_get_path('module', $name) . '/' . $name . '.module';
         $features[$name]->type = 'module';
+        $features[$name]->status = module_exists($name);
         $features[$name]->info = $info + $defaults;
       }
     }
@@ -979,7 +980,8 @@ function _features_restore($op, $items = array()) {
         }
       }
     }
-  } else {
+  }
+  else {
     //sort components of items in orders of weight
     $full_components = array_keys(features_get_components());
     foreach($items as $feature => $components) {

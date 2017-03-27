@@ -22,12 +22,7 @@ function ctm_installation_config_content_type_block($profile, $roles, $op = 'upd
       'locked' => 1,
       'custom' => 0,
   );
-  $content_type_bundle = node_type_set_defaults($content_type_bundle);
-  node_type_save($content_type_bundle);
-  $bundle_settings = field_bundle_settings('node', $content_type_bundle->type);
-  $bundle_settings['view_modes']['teaser']['custom_settings'] = FALSE;
-  field_bundle_settings('node', $content_type_bundle->type, $bundle_settings);
-
+  ctm_installation_insert_or_update_content_type($content_type_bundle);
   $field_texte_page_base = array(
       'field_name' => $field_name,
       'entity_types' => array('node'),

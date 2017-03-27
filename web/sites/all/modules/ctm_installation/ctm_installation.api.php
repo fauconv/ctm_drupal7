@@ -111,7 +111,7 @@ function hook_installation_permissions() {
 function hook_installation_permission_matrix_alter(&$matrice) {
   foreach ($matrice as $key => $value) {
     foreach ($value as $key2 => $value2) {
-      $matrice[$key][$key2][CONTRIBUTEUR] = ctm_installation_get_true_perms();
+      $matrice[$key][$key2][CONTRIBUTEUR] = ctm_installation_get_true_matrix();
     }
   }
 }

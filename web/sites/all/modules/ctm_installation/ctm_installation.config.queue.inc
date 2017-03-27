@@ -70,4 +70,5 @@ function ctm_installation_config_auto_perm_queue($profile, &$roles, $op = 'updat
       }
     }
   }
+  ctm_installation_queue_access_rebuild();
 }

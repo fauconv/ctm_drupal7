@@ -70,7 +70,6 @@ function ctm_installation_config_core_content_type_page_base_after($profile, $ro
   );
   ctm_installation_insert_or_update_field_instance($instances_texte_page_base);
 
-  ctm_installation_set_default_content_type_datas($type, $roles, $profile, array($field_name));
 }
 
 
@@ -167,7 +166,6 @@ function ctm_installation_config_core_static_field_after($profile, $roles, $op =
   );
   ctm_installation_insert_or_update_field_instance($instances_texte_page_base);
   //display
-  ctm_installation_set_default_display_cache_field($type, array($field_name));
   ctm_installation_set_multi_language_field($field_name);
   
   $permission_list = array('allow users to pick page_de_base templates');

@@ -94,34 +94,12 @@ function ctm_installation_deleteDirectory($dir) {
  * retourne la version ferme
  */
 function ctm_installation_get_version_info() {
+  include_once 'releases/property_read.php';
   return array(
       'app' => ctm_installation_get_properties_value('releases/release.properties', 'VERSION_APP', '0.0.0'),
-      'dist' => ctm_installation_get_properties_value('releases/release.properties', 'dist', '0.0.0'),
-      'build' => ctm_installation_get_properties_value('releases/release.properties', 'build', '0.0.0'),
+      'dist' => ctm_installation_get_properties_value('releases/release.properties', 'DIST', '0.0.0'),
+      'build' => ctm_installation_get_properties_value('releases/release.properties', 'BUILD', '0.0.0'),
   );
-}
-
-/**
- * recupere la valeur d'une variable ant dans un fichier properties
- * @param string $filename : nom du fichier + chemin depuis www
- * @param string $variable : nom de la variable ant
- * @param string $default_value : valeur par defaut retourne si la variable n est pas trouve
- * @return string
- */
-function ctm_installation_get_properties_value($filename, $variable, $default_value = NULL) {
-  $file = @file($filename);
-  if ($file) {
-    foreach ($file as $line) {
-      if (strpos($line, $variable) === 0) {
-        $pos = strpos($line, '=');
-        if ($pos > 0) {
-          $default_value = str_replace('"','',trim(substr($line, $pos + 1))); //@ignore upgrade47_7
-          break;
-        }
-      }
-    }
-  }
-  return $default_value;
 }
 
 /**
@@ -188,11 +166,14 @@ function ctm_installation_node_save($node, $update = FALSE) {
 /**
  * permet de creer un field
  * @param $field array(
-  'field_name' => 'blabla',
-  'entity_types' => array('node'),
-  'type' => 'text_long',
-  )
- */
+ *     'field_name' => 'blabla',
+ *     'entity_types' => array('node'),
+  *    'type' => 'text_long',
+ *     'translatable' => 0,
+ *     'cardinality' => 1,
+ *     'locked' => FALSE
+ *   )
+ **/
 function ctm_installation_insert_or_update_field($field) {
   $info = field_info_field($field['field_name']);
   if (empty($info)) {
@@ -262,6 +243,7 @@ function ctm_installation_insert_or_update_field_instance($instance) {
   else {
     field_create_instance($instance);
   }
+  ctm_installation_set_default_display_cache_field($instance['bundle'], array($instance['field_name']));
 }
 
 /**
@@ -777,4 +759,5 @@ function ctm_installation_insert_or_update_content_type($content_type_bundle) {
   $bundle_settings = field_bundle_settings('node', $content_type_bundle->type);
   $bundle_settings['view_modes']['teaser']['custom_settings'] = FALSE;
   field_bundle_settings('node', $content_type_bundle->type, $bundle_settings);
+  ctm_installation_set_default_content_type_datas($content_type_bundle->type);
 }

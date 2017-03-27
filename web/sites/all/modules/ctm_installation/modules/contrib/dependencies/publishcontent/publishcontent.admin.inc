@@ -31,7 +31,22 @@ function publishcontent_config_form($form, &$form_state) {
     '#collapsed' => FALSE,
     '#description' => t('Choose the content types to support.'),
   );
-
+  $form['publishcontent_publish_on_create'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Add publish button on node create page.'),
+    '#description' => t('If checked, add the publish button on node create page. If not checked node must be saved before publishing like with "Tabs" method'),
+    '#default_value' => variable_get('publishcontent_publish_on_create', FALSE),
+    '#states' => array(
+      // Only show this field when the value of publishcontent_method is PUBLISHCONTENT_METHOD_BUTTON
+      'invisible' => array(
+        array(
+          array(':input[name="publishcontent_method"]' => array('value' => PUBLISHCONTENT_METHOD_NONE)),
+          array(':input[name="publishcontent_method"]' => array('value' => PUBLISHCONTENT_METHOD_ACTION_LINKS)),
+          array(':input[name="publishcontent_method"]' => array('value' => PUBLISHCONTENT_METHOD_TABS)),
+        )
+      ),
+    ),
+  );
   foreach ($node_types as $machine_name => $human_name) {
     $form['content_types_fieldset']['publishcontent_' . $machine_name] = array(
       '#type' => 'checkbox',

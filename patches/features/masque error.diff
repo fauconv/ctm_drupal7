@@ -1,0 +1,13 @@
+diff --git a/features.admin.inc b/features.admin.inc
+index 2dea423..c384312 100755
+--- a/features.admin.inc
++++ b/features.admin.inc
+@@ -1491,6 +1491,8 @@ function features_feature_lock_confirm_form_submit($form, &$form_state) {
+  * Compare the component names. Used to sort alphabetically.
+  */
+ function features_compare_component_name($a, $b) {
++  if(!isset($a['name'])) $a['name'] = '';
++  if(!isset($b['name'])) $b['name'] = '';
+   return strcasecmp($a['name'], $b['name']);
+ }
+

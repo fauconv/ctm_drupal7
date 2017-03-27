@@ -1,10 +1,8 @@
 <?php
 
 //MANUAL SETTINGS =====================================================
-// if you modify manual setting, you have to make an hard up with :
+// if you modify manual setting, you have to make an hard update with :
 // > drush ctm_update
-// or
-// > deploy.sh -u
 
 /**
  * liste des domaines :
@@ -12,7 +10,8 @@
  * -soit l'url front est différente du back : dans ce cas la premiere url doit être celle du front
  * -soit dans le cas d'un site multi domaine (necessite le module "domain")
  */
-$conf['base_root_list'] = array($_SERVER["HTTP_HOST"]);
+$conf['base_root_list'] = array('http://'.$_SERVER["HTTP_HOST"]);
+
 $conf['base_path'] = '';
 
 /**
@@ -345,11 +344,14 @@ $drupal_hash_salt = '';
 # $base_url = 'http://www.example.com';  // NO trailing slash!
 $my_path = basename(dirname(__FILE__));
 if (empty($_SERVER['HTTP_HOST']) || str_replace('http://', '', str_replace('https://', '', $_SERVER['HTTP_HOST'])) == $my_path || drupal_is_cli()) {
-  $_SERVER['HTTP_HOST'] = str_replace('http://', '', str_replace('https://', '', $conf['base_root_list'][0])) . $conf['base_path'];
+  $_SERVER['HTTP_HOST'] = str_replace('http://', '', str_replace('https://', '', $conf['base_root_list'][0]));
+  $_SERVER['SCRIPT_NAME'] = $conf['base_path'] .'/index.php';
+  $_SERVER['REQUEST_URI'] = $conf['base_path'] .'/';
   if(substr($conf['base_root_list'][0],0,5) == 'https') {
     $_SERVER['HTTPS'] = 'on';
   }
 }
+
 
 /**
  * Drupal automatically generates a unique session cookie name for each site
