@@ -1,5 +1,4 @@
  Mise en place d'une ferme Drupal industrialisée
- https://github.com/fauconv/ctm_drupal7
 =================================================
 Ce document décrit comment installer une ferme et un site Drupal
 pour développement ou mise en recette.
@@ -14,12 +13,12 @@ par site même si il n'y a qu'une seule ferme.
 
 1. Pré-requis
 --------------
-  - Vous devez disposer d'un serveur apache avec PHP5.4 with opcache ou supérieur d'installé
+  - Vous devez disposer d'un serveur apache avec PHP5.4 with opcache ou 
+    supérieur d'installé avec optionnellement APCu.
   - Vous devez disposer d'un serveur mysql 5.5 ou supérieur avec une base de
-    données vide et d'un utilisateur capable d'accéder à cette base
-  - pour windows vous devez avoir installer cygwin
+    données vide et d'un utilisateur capable d'accéder à cette base.
 
-2. Configuration apache
+2.1 Configuration apache
 ------------------------
   - configuration standard minimum : "mod_dir", "mod_env", "mod_negociation",
     "mod_setif"
@@ -38,7 +37,7 @@ par site même si il n'y a qu'une seule ferme.
 ---------------------
   - Si la directive "open_basedir"est utilise, elle doit pointer sur le
     répertoire qui contient les 2 répertoires : "web", et "config"
-  - Il est recommandé d'installer le module APCU pour PHP et d'activer opcache
+  - Il est recommandé d'installer le module APCu pour PHP et d'activer opcache
     avec les parametres :
 
 ```
@@ -101,7 +100,9 @@ par site même si il n'y a qu'une seule ferme.
   innodb_log_buffer_size  = 4M
   innodb_flush_log_at_trx_commit = 0
   innodb_lock_wait_timeout = 180
-
+  innodb_large_prefix=true
+  innodb_file_format=barracuda
+  innodb_file_per_table=true
 
   skip-name-resolve
   skip-external-locking
@@ -112,28 +113,40 @@ par site même si il n'y a qu'une seule ferme.
 
 5. Récupération des fichiers
 -----------------------------
-  - cas de la création d'une nouvelle ferme par un developpeur :
-    Récupérer la distribution vierge depuis le scm de la distribution
+  - cas de la création d'une nouvelle ferme en dev :
+    Récupérer la distribution vierge depuis https://github.com/fauconv/ctm_drupal7
     et la placer dans votre environnement ou il y a le scm de votre projet
-  - cas d'installation d'une ferme existante en dev ou recette :
+  - cas d'installation en dev ou en recette d'une ferme existante :
     Récupérer les fichiers dans le scm du projet existant
-  - cas d'une installation en prod :
+  - cas d'une installation en prod d'une ferme existante :
     Récupérer le zip fourni
 
- Installation d'un site Drupal industrialisé
-=============================================
+ Installation d'un site Drupal
+==============================
 
 1. Installation
 ----------------
-  (Sous windows utilisez cygwin)
-  - créez les 2 fichier de configuration my_project.config.local.ini et
-    my_project.config.local.ini dans le répertoire config en prenant exemple
-    sur les fichiers d'exemple.
-  - puis lancez la commande `./project.sh site deploy my_project` dans le
-    répertoire script,.
+  - cas de la création d'une nouvelle ferme en dev :
+      1. créez les 2 fichiers de configuration my_project.config.local.ini et
+         my_project.config.global.ini dans le répertoire config en prenant 
+         exemple sur les fichiers d'exemple.
+      2. puis lancez la commande `./project.sh site deploy my_project` dans le
+         répertoire script.
+  - cas d'installation en dev ou recette d'une ferme existante :
+      1. créez le fichier de configuration my_project.config.local.ini dans le 
+         répertoire config en prenant exemple sur les fichiers d'exemple.
+      2. puis lancez la commande `./project.sh site deploy my_project` dans le
+         répertoire script.
+  - cas d'une installation en prod d'une ferme existante :
+      0. Dé-zippé le fichier fournis
+      1. créez le fichier de configuration my_project.config.local.ini dans le 
+         répertoire config en prenant exemple sur les fichiers d'exemple.
+      2. puis lancez la commande `./project.sh site deploy my_project` dans le
+         répertoire script.
+  
 
   ATTENTION : durant l'installation les mots de passes pour les premiers
-              utilisateurs (developer, administrator, et contributor) seront
+              utilisateurs (developer, administrator, ....) seront
               affichés pensez à les noter si vous n'avez pas activé
               l'auto-login.
 

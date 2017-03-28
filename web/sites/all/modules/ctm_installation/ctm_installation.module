@@ -11,11 +11,13 @@ $ctm_installation_dir = dirname(__FILE__);
 require $ctm_installation_dir . '/ctm_installation.queue.inc'; // librairie pour le systeme de queue
 require $ctm_installation_dir . '/ctm_installation.api.inc'; // librairie de fonctions utilisable par les features
 require $ctm_installation_dir . '/ctm_installation.permissions.api.inc'; // librairie de fonctions utilisable pour la gestion des droits
+require $ctm_installation_dir . '/ctm_installation.og.api.inc'; // librairie de fonctions utilisable par les features
 
 // attention si vous changez les constantes ci-dessous il faut adapter les features en consequence
 //theme et profil
 define('CTM_INTERNET', 'ctm_internet'); // nom du profil internet
 define('CTM_INTRANET', 'ctm_intranet'); // nom du profil intranet
+
 //roles
 define('ADMINISTRATEUR', 'Developer'); // nom du role administrateur
 define('ADMIN_SITE', 'Administrator'); // nom du role admin metier

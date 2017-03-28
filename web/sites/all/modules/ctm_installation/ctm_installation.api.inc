@@ -165,13 +165,15 @@ function ctm_installation_node_save($node, $update = FALSE) {
 
 /**
  * permet de creer un field
- * @param $field array(
- *     'field_name' => 'blabla',
- *     'entity_types' => array('node'),
-  *    'type' => 'text_long',
- *     'translatable' => 0,
- *     'cardinality' => 1,
- *     'locked' => FALSE
+ * @param $field = array(
+    'field_name' => $id,
+    'translatable' => '0',
+    'type' => 'entityreference',
+    'module' => 'entityreference',
+    'cardinality' => $cardinality,
+    'settings' => array(
+    ),
+  );
  *   )
  **/
 function ctm_installation_insert_or_update_field($field) {
@@ -208,31 +210,45 @@ function ctm_installation_insert_or_update_role(&$roles, $name, $weight) {
 
 /**
  * permet de creer une instance de field lier a un bundle (node ou taxo)
- * @param $instance array(
-  'field_name' => 'texte_page_base',
-  'entity_type' => 'node',
-  'bundle' => 'page_de_base',
-  'label' => 'Texte',
-  'display' => array(
-  'default' => array(
-  'label' => 'hidden',
-  'type' => 'text_default',
-  'weight' => 0,
-  ),
-  ),
-  'settings' => array(
-  'text_processing' => '1',
-  'better_formats' => array(
-  'allowed_formats_toggle' => 1,
-  'allowed_formats' => array(
-  'ckeditor_images_liens_etroit' => 'ckeditor_images_liens_etroit',
-  'ckeditor_images_liens_large' => 'ckeditor_images_liens_large',
-  ),
-  'default_order_toggle' => 0,
-  ),
-  'user_register_form' => FALSE,
-  ),
-  'widget' => array('type' => 'text_textarea'),
+ * 
+ * @param $instance = array(
+    'field_name' => $id,
+    'entity_type' => 'node',
+    'description' => '',
+    'default_value' => NULL,
+    'bundle' => $ct,
+    'label' => $label,
+    'required' => 1,
+    'widget' => array(
+      'weight' => 32,
+      'type' => 'og_complex',
+      'module' => 'og',
+      'active' => 0,
+      'settings' => array(),
+    ),
+    'view modes' => array(
+      'full' => array(
+        'label' => 'Full',
+        'type' => 'og_list_default',
+        'custom settings' => FALSE,
+      ),
+      'teaser' => array(
+        'label' => 'Teaser',
+        'type' => 'og_list_default',
+        'custom settings' => FALSE,
+      ),
+    ),
+    'display' => array(
+      'default' => array(
+        'type' => 'og_list_default',
+        'label' => 'above',
+        'settings' => array(),
+        'module' => 'og_ui',
+        'weight' => 2,
+      ),
+    ),
+    'settings' => array(
+    ),
   );
  */
 function ctm_installation_insert_or_update_field_instance($instance) {

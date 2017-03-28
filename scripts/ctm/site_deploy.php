@@ -34,8 +34,8 @@ function create_site() {
     echo "Create site directory...\n";
     rcopy(ABS_SITES_PATH.'/default', ABS_SITE_PATH);
     rcopy(ABS_MEDIAS_PATH.'/default', ABS_MEDIA_PATH);
-    copy(ABS_SITES_PATH.'/default', ABS_SITE_PATH);
     setRight('dev');
+    unlink(ABS_SITE_PATH.'/default.settings.php');
   } else {
     echo "Reinitializing setting.php...\n";
     if(!is_dir(ABS_MEDIA_PATH)) {
@@ -59,6 +59,19 @@ function create_site() {
     $RESULT  = "'base_path'] = '".ALIAS0."';\n";
     $content = preg_replace($PATTERN, $RESULT, $content, 1);
   }
+  $parse = parse_url(DATABASE);
+  $PATTERN = '/\$databases = array\(\);/';
+  $RESULT   = "\$databases['default']['default'] = array(\n";
+  $RESULT  .= "'driver' => '".$parse['scheme']."',\n";
+  $RESULT  .= "'port' => '".$parse['port']."',\n";
+  $RESULT  .= "'database' => '".str_replace('/','',$parse['path'])."',\n";
+  $RESULT  .= "'username' => '".$parse['user']."',\n";
+  $RESULT  .= "'password' => '".$parse['pass']."',\n";
+  $RESULT  .= "'host' => '".$parse['host']."',\n";
+  $RESULT  .= "'charset' => 'utf8mb4',\n";
+  $RESULT  .= "'collation' => 'utf8mb4_general_ci',\n";
+  $RESULT  .= ");\n";
+  $content = preg_replace($PATTERN, $RESULT, $content, 1);
   file_put_contents(ABS_SITE_PATH.'/settings.php', $content);
   
   $content = file_get_contents(ABS_CONFIG_PATH.'/sites.php');
@@ -189,6 +202,7 @@ function finalize() {
     for($i = $cut+1;$i < $end; $i++) {
       $part2[] = $content[$i];
     }
+    $part2 = implode("\n", $part2);
     file_put_contents(ABS_SITE_PATH.'/settings.php', $part2, FILE_APPEND);
   }
   copy(ABS_CONFIG_PATH.'/example.masquerade-default.xml', ABS_CONFIG_PATH.'/masquerade-'.ID.'.xml');

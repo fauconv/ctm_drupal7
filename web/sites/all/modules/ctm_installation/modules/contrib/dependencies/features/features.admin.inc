@@ -583,7 +583,11 @@ function _features_export_build($feature, &$form_state) {
     }
   }
   // Generate new populated feature
-  $export = features_populate(array('features' => $stub, 'dependencies' => $stub['dependencies']), $feature_name);
+  $stub_arr = array('features' => $stub);
+  if(isset($stub['dependencies'])) {
+    $stub_arr['dependencies'] = $stub['dependencies'];
+  }
+  $export = features_populate($stub_arr, $feature_name);
 
   // Components that are already exported to feature
   $exported_features_info = !empty($feature->info['features']) ? $feature->info['features'] : array();
